@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferramenta Auxiliar CRSC-PCCTAE | SEACAR UFFS</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- PDF.js para extração de texto nativo -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Tesseract.js para OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- jsPDF para gerar o parecer em PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>SEACAR / UFFS - Ferramenta Auxiliar CRSC-PCCTAE</h1>
+    <p>Análise local e geração de parecer conforme Decreto nº 13.048/2026</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. Dados do Processo</h2>
+      <label for="sipac">Processo SIPAC:</label>
+      <input type="text" id="sipac" placeholder="23205.XXXXXX/2026-XX">
+      
+      <label for="pdfFile">Requerimento em PDF:</label>
+      <input type="file" id="pdfFile" accept="application/pdf">
+      <button id="btnProcessar" onclick="processarPDF()">Extrair Dados (Texto + OCR)</button>
+    </section>
+
+    <section class="card" id="statusSection" style="display:none;">
+      <h2>2. Status do Processamento</h2>
+      <div id="status">Aguardando arquivo...</div>
+    </section>
+
+    <section class="card" id="resultadoSection" style="display:none;">
+      <h2>3. Dados Extraídos e Validação</h2>
+      <div id="comparacaoCampos"></div>
+      <button onclick="gerarParecerPDF()">Gerar Parecer em PDF</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
