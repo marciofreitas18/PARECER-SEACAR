@@ -146,22 +146,55 @@ function exportarParaCSV() {
 
 // --- FUNÇÕES DE DOWNLOAD DE DOCUMENTOS ---
 function baixarComoHTML(texto, nomeArquivo) {
-    const conteudoHTML = `
-    <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Parecer SEACAR</title></head>
-    <body style="font-family: Arial, sans-serif; margin: 40px; line-height: 1.6;">
-        <div style="white-space: pre-wrap;">${texto}</div>
-    </body></html>`;
+  const conteudoHTML = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Parecer SEACAR</title>
+      <style>
+        body { font-family: 'Times New Roman', Times, serif; margin: 40px; line-height: 1.5; color: #000; }
+        .header-oficial { text-align: center; margin-bottom: 25px; font-weight: bold; font-size: 11pt; }
+        .header-oficial img { height: 70px; margin-bottom: 8px; }
+        .conteudo { white-space: pre-wrap; font-size: 12pt; text-align: justify; }
+      </style>
+    </head>
+    <body>
+      <div class="header-oficial">
+        <!-- Brasão da República / Logo Institucional -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/Coat_of_arms_of_Brazil.svg" alt="Brasão da República"><br>
+        MINISTÉRIO DA EDUCAÇÃO<br>
+        UNIVERSIDADE FEDERAL DA FRONTEIRA SUL – UFFS<br>
+        SECRETARIA ESPECIAL DE ADMINISTRAÇÃO EM CARREIRA - SEACAR
+      </div>
+      <hr style="border: 0; border-top: 1px solid #000; margin-bottom: 20px;">
+      <div class="conteudo">${texto}</div>
+    </body>
+    </html>
+  `;
+
     fazerDownload(new Blob([conteudoHTML], { type: 'text/html;charset=utf-8' }), nomeArquivo);
 }
 
 function baixarComoDOCX(texto, nomeArquivo) {
-    const conteudoWord = `
+  const conteudoWord = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head><meta charset='utf-8'></head>
-    <body style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5;">
-        ${texto.replace(/\n/g, '<br>')}
-    </body></html>`;
-    fazerDownload(new Blob(['\ufeff' + conteudoWord], { type: 'application/msword' }), nomeArquivo);
+    <body style="font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5;">
+      <div style="text-align: center; margin-bottom: 20px; font-weight: bold;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/Coat_of_arms_of_Brazil.svg" width="70" height="70"><br><br>
+        MINISTÉRIO DA EDUCAÇÃO<br>
+        UNIVERSIDADE FEDERAL DA FRONTEIRA SUL – UFFS<br>
+        PRÓ-REITORIA DE GESTÃO DE PESSOAS - PROGESP
+      </div>
+      <hr>
+      <br>
+      <div>${texto.replace(/\n/g, '<br>')}</div>
+    </body>
+    </html>
+  `;
+
+  fazerDownload(new Blob(['\ufeff' + conteudoWord], { type: 'application/msword' }), nomeArquivo);
 }
 
 function fazerDownload(blob, nomeArquivo) {
