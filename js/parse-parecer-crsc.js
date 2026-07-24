@@ -17,9 +17,13 @@ async function extrairDadosParecerCRSC(file) {
     // Normaliza espaços para facilitar a busca
     const textoLimpo = textoCompleto.replace(/\s+/g, ' ');
 
-    // Identifica se o parecer é Favorável (DEFERIDO) ou Desfavorável/Não Favorável (INDEFERIDO)
+    // Identifica se o parecer é Favorável (DEFERIDO)
     const eFavoravel = /Parecer[:;]?\s*Favorável/i.test(textoLimpo) || 
                        (!/Não Favorável|Desfavorável/i.test(textoLimpo) && /Favorável/i.test(textoLimpo));
+
+    // Captura da pontuação obtida no parecer
+    const pontos = extrairRegEx(textoLimpo, /Pontuação obtida[:;]?\s*(\d+)/i) || 
+                   extrairRegEx(textoLimpo, /(?:Pontuação|Pontos|Total)[:;]?\s*([\d,\.]+)/i) || "0";
 
     const dados = {
         // Dados do Processo e Servidor
@@ -34,12 +38,13 @@ async function extrairDadosParecerCRSC(file) {
         nivelConcedido: extrairRegEx(textoLimpo, /Nível concedido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Vigência|$))/i) || "RSC-PCCTAE V",
         percentual: extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+%?)/i) || "52%",
         
-        // Pontuação e Datas
-        pontuacaoObtida: extrairRegEx(textoLimpo, /Pontuação obtida[:;]?\s*(\d+)/i) || "0",
+        // Mapeia os pontos para ambas as chaves (evita o erro undefined)
+        pontuacaoObtida: pontos,
+        pontuacaoTotal: pontos,
+        
+        // Datas e Resultado
         dataRequerimento: extrairRegEx(textoLimpo, /Data do requerimento[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
         dataVigencia: extrairRegEx(textoLimpo, /Vigência da Concessão a partir de[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
-        
-        // Resultado Final
         resultado: eFavoravel ? "DEFERIDO" : "INDEFERIDO"
     };
 
