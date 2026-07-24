@@ -12,30 +12,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = event.target.files[0];
             if (!file) return;
 
-            statusDiv.classList.remove('d-none', 'alert-danger', 'alert-success');
+            // Exibe mensagem de carregamento
+            statusDiv.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-secondary');
             statusDiv.classList.add('alert-info');
-            statusDiv.textContent = "⏳ Lendo e processando o PDF do Parecer da CRSC...";
+            statusDiv.textContent = "⏳ Lendo arquivo PDF e extraindo informações...";
 
             try {
                 dadosExtraidos = await extrairDadosParecerCRSC(file);
                 
+                // Exibe mensagem de sucesso
                 statusDiv.classList.remove('alert-info');
                 statusDiv.classList.add('alert-success');
-                statusDiv.innerHTML = `✅ <b>Leitura concluída!</b><br>Servidor: <b>${dadosExtraidos.nomeServidor}</b> (SIAPE: ${dadosExtraidos.siape})<br>Resultado CRSC: <b>${dadosExtraidos.resultado}</b> (RSC-${dadosExtraidos.nivelRsc})`;
+                statusDiv.innerHTML = `✅ <b>Parecer CRSC Lido com Sucesso!</b><br>` +
+                                      `Servidor: <b>${dadosExtraidos.nomeServidor}</b> | SIAPE: <b>${dadosExtraidos.siape}</b><br>` +
+                                      `Resultado: <b>${dadosExtraidos.resultado}</b> (RSC-${dadosExtraidos.nivelRsc})`;
                 
+                // Exibe os botões de download
                 acoesDiv.classList.remove('d-none');
             } catch (error) {
                 console.error(error);
                 statusDiv.classList.remove('alert-info');
                 statusDiv.classList.add('alert-danger');
-                statusDiv.textContent = "❌ Erro ao ler o arquivo PDF. Verifique se o arquivo não está corrompido ou protegido.";
+                statusDiv.textContent = "❌ Erro ao ler o PDF. Verifique se o arquivo enviado é um PDF válido e pesquisável.";
             }
         });
     }
 
     if (btnSeacar) {
         btnSeacar.addEventListener('click', () => {
-            if (!dadosExtraidos) return alert("Por favor, selecione um arquivo PDF primeiro!");
+            if (!dadosExtraidos) return alert("Por favor, selecione o PDF do parecer primeiro!");
             const texto = gerarParecerSEACAR(dadosExtraidos);
             baixarComoHTML(texto, `Parecer_SEACAR_${dadosExtraidos.siape}.html`);
         });
@@ -43,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnPortaria) {
         btnPortaria.addEventListener('click', () => {
-            if (!dadosExtraidos) return alert("Por favor, selecione um arquivo PDF primeiro!");
+            if (!dadosExtraidos) return alert("Por favor, selecione o PDF do parecer primeiro!");
             const texto = gerarMinutaPortariaPROGESP(dadosExtraidos);
             baixarComoDOCX(texto, `Minuta_Portaria_RSC_${dadosExtraidos.siape}.doc`);
         });
