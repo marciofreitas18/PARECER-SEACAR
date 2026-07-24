@@ -1,31 +1,64 @@
-/* Identity Colors - UFFS Green */
+/* Paleta Oficial UFFS */
 :root {
   --uffs-green: #006b3f;
   --uffs-green-dark: #004b2c;
   --uffs-green-light: #e6f0ec;
+  --uffs-accent: #198754;
 }
 
-/* Header e Banners */
-.bg-primary, .card-header.bg-primary {
-  background-color: var(--uffs-green) !important;
+body {
+  background-color: #f4f7f6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Botões Principais */
-.btn-primary {
-  background-color: var(--uffs-green) !important;
-  border-color: var(--uffs-green-dark) !important;
+/* Cabeçalho do Card */
+.header-uffs {
+  background: linear-gradient(135deg, var(--uffs-green-dark) 0%, var(--uffs-green) 100%);
+  color: #ffffff;
+  border-bottom: 4px solid #00331e;
 }
 
-.btn-primary:hover {
-  background-color: var(--uffs-green-dark) !important;
+.logo-header {
+  max-height: 55px;
+  background-color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
-.btn-outline-primary {
-  color: var(--uffs-green) !important;
-  border-color: var(--uffs-green) !important;
+/* Botões */
+.btn-uffs-primary {
+  background-color: var(--uffs-green);
+  color: #ffffff;
+  border: none;
+  transition: all 0.2s ease;
 }
 
-.btn-outline-primary:hover {
-  background-color: var(--uffs-green) !important;
-  color: #fff !important;
+.btn-uffs-primary:hover {
+  background-color: var(--uffs-green-dark);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-outline-uffs {
+  color: var(--uffs-green);
+  border-color: var(--uffs-green);
+  font-weight: 600;
+}
+
+.btn-outline-uffs:hover {
+  background-color: var(--uffs-green);
+  color: #ffffff;
+}
+
+/* Tabela e Badges */
+.table-dark-uffs {
+  background-color: var(--uffs-green-dark);
+  color: #ffffff;
+}
+
+.badge-uffs {
+  background-color: var(--uffs-green-light);
+  color: var(--uffs-green-dark);
+  font-weight: 600;
 }
