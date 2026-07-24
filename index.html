@@ -9,28 +9,29 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js - Leitor de PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- PDF.js - Leitor de PDF (Versão Atualizada) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
 </head>
-<body>
+<body class="bg-light">
 
     <div class="container py-5">
-        <div class="card shadow-lg border-0 rounded-3 mx-auto" style="max-width: 900px;">
+        <div class="card shadow-lg border-0 rounded-3 mx-auto" style="max-width: 950px;">
             
             <!-- Cabeçalho com o Logo da UFFS -->
-            <div class="card-header header-uffs p-4 rounded-top-3">
+            <div class="card-header header-uffs p-4 rounded-top-3 bg-dark text-white">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-3">
-                        <img src="logo-uffs.png" alt="Logo UFFS" class="logo-header">
+                        <!-- Garantido o caminho relativo e extensão PNG -->
+                        <img src="./logo-uffs.png" alt="Logo UFFS" class="logo-header" style="max-height: 50px;">
                         <div>
                             <h4 class="mb-0 fw-bold">Assistente para Análise de Processos do RSC SEACAR / PROGESP</h4>
                             <small class="text-white-50">Universidade Federal da Fronteira Sul</small>
                         </div>
                     </div>
-                    <span class="badge badge-uffs px-3 py-2">RSC-PCCTAE</span>
+                    <span class="badge bg-success px-3 py-2">RSC-PCCTAE</span>
                 </div>
             </div>
 
@@ -43,7 +44,7 @@
                     </label>
                     <input class="form-control form-control-lg border-2" type="file" id="pdfCRSCInput" accept=".pdf">
                     <div class="form-text mt-2">
-                        💡 Faça o upload do documento gerado no SIPAC para realizar a análise automática.
+                        💡 Faça o upload do documento gerado no SIPAC para realizar a extração e análise automática.
                     </div>
                 </div>
 
@@ -56,10 +57,10 @@
                 <div id="acoesGeracao" class="d-none mt-4 pt-3 border-top">
                     <h5 class="text-center mb-3 fw-bold text-secondary">2. Documentos Gerados</h5>
                     <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                        <button id="btnGerarSeacar" class="btn btn-outline-uffs btn-lg px-4 shadow-sm">
+                        <button id="btnGerarSeacar" class="btn btn-outline-success btn-lg px-4 shadow-sm">
                             📄 Baixar Parecer SEACAR (.html)
                         </button>
-                        <button id="btnGerarPortaria" class="btn btn-uffs-primary btn-lg px-4 shadow-sm">
+                        <button id="btnGerarPortaria" class="btn btn-success btn-lg px-4 shadow-sm">
                             📜 Baixar Minuta Portaria (.doc)
                         </button>
                     </div>
@@ -77,18 +78,20 @@
 
                     <div class="table-responsive rounded-3 border">
                         <table class="table table-striped table-hover align-middle mb-0">
-                            <thead class="table-dark-uffs">
+                            <thead class="table-dark">
                                 <tr>
                                     <th>Data/Hora</th>
                                     <th>Processo</th>
                                     <th>Servidor(a)</th>
                                     <th>SIAPE</th>
                                     <th>Nível</th>
+                                    <th>Pontos</th>
+                                    <th>%</th>
                                     <th>Resultado</th>
                                 </tr>
                             </thead>
                             <tbody id="tabelaHistorico">
-                                <!-- Linhas inseridas via JS -->
+                                <!-- Linhas inseridas dinamicamente via JS -->
                             </tbody>
                         </table>
                     </div>
@@ -97,12 +100,12 @@
             </div>
             
             <div class="card-footer text-center bg-light text-muted py-3 border-top-0 rounded-bottom-3">
-                <small>Serviço Especial de Acompanhamento de Carreira (SEACAR) • UFFS</small>
+                <small>Secretaria Especial de Administração em Carreira (SEACAR) • UFFS</small>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts do Sistema -->
     <script src="js/parse-parecer-crsc.js"></script>
     <script src="js/parecer-seacar-pdf.js"></script>
     <script src="js/minuta-portaria-pdf.js"></script>
