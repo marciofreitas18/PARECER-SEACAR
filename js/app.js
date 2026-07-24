@@ -1,78 +1,102 @@
-// Configuração do Worker do PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// Aguarda o carregamento completo do HTML
+document.addEventListener('DOMContentLoaded', () => {
+  const inputPdf = document.getElementById('pdfCRSCInput');
+  const statusDiv = document.getElementById('statusLeitura');
+  const acoesDiv = document.getElementById('acoesGueracao');
+  const btnSeacar = document.getElementById('btnGerarSeacar');
+  const btnPortaria = document.getElementById('btnGerarPortaria');
 
-async function processarDocumentoCRSC() {
-  const fileInput = document.getElementById('pdfFile');
-  const statusDiv = document.getElementById('status');
-  
-  if (!fileInput.files[0]) {
-    alert("Selecione o arquivo do Parecer/Relatório da CRSC!");
-    return;
+  let dadosExtraidos = null;
+
+  if (inputPdf) {
+    inputPdf.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      statusDiv.classList.remove('d-none');
+      statusDiv.textContent = "Lendo e extraindo dados do Parecer da CRSC...";
+
+      try {
+        // Função do arquivo parse-parecer-crsc.js
+        dadosExtraidos = await extrairDadosParecerCRSC(file);
+        
+        statusDiv.className = "alert alert-success";
+        statusDiv.textContent = `Dados extraídos com sucesso! Servidor: ${dadosExtraidos.nomeServidor || 'Identificado'}`;
+        acoesDiv.classList.remove('d-none');
+      } catch (error) {
+        console.error(error);
+        statusDiv.className = "alert alert-danger";
+        statusDiv.textContent = "Erro ao processar o PDF. Verifique se o arquivo é um parecer válido.";
+      }
+    });
   }
 
-  document.getElementById('statusSection').style.display = 'block';
-  statusDiv.innerHTML = "Lendo texto do documento da comissão...";
-
-  const file = fileInput.files[0];
-  const arrayBuffer = await file.arrayBuffer();
-  
-  // 1. Extração de texto nativo (PDF.js)
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let textoCompleto = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const strings = content.items.map(item => item.str);
-    textoCompleto += strings.join(" ") + "\n";
+  // 1. GERAÇÃO DO PARECER SEACAR EM HTML
+  if (btnSeacar) {
+    btnSeacar.addEventListener('click', () => {
+      if (!dadosExtraidos) return alert("Envie um PDF primeiro!");
+      const conteudoTexto = gerarParecerSEACAR(dadosExtraidos);
+      
+      baixarComoHTML(conteudoTexto, `Parecer_SEACAR_${dadosExtraidos.siape || 'RSC'}.html`);
+    });
   }
 
-  // 2. OCR complementar para carimbos e blocos de assinatura digital achatados
-  statusDiv.innerHTML = "Analisando assinaturas e blocos digitais (OCR)...";
-  const worker = await Tesseract.createWorker('por+eng');
-  const ret = await worker.recognize(file);
-  let textoOCR = ret.data.text;
-  await worker.terminate();
+  // 2. GERAÇÃO DA MINUTA DE PORTARIA EM DOCX (WORD)
+  if (btnPortaria) {
+    btnPortaria.addEventListener('click', () => {
+      if (!dadosExtraidos) return alert("Envie um PDF primeiro!");
+      const conteudoTexto = gerarMinutaPortariaPROGESP(dadosExtraidos);
+      
+      baixarComoDOCX(conteudoTexto, `Minuta_Portaria_${dadosExtraidos.siape || 'RSC'}.doc`);
+    });
+  }
+});
 
-  statusDiv.innerHTML = "Leitura e validação concluídas!";
-  
-  // 3. Parser focado no resultado da CRSC
-  const dadosExtraidos = parsearDocumentoCRSC(textoCompleto + "\n" + textoOCR);
-  exibirMinutaParaAssinatura(dadosExtraidos);
-}
+// --- FUNÇÕES DE DOWNLOAD ---
 
-function parsearDocumentoCRSC(texto) {
-  // RegEx para identificar o resultado final, pontuação e assinaturas
-  const deferido = /DEFERIDO/i.test(texto) && !/INDEFERIDO/i.test(texto);
-  
-  // Busca por padrões numéricos de pontuação (ex: "Pontuação Final: 45", "Total: 45 pontos")
-  const matchPontos = texto.match(/(?:pontua[çc][ãa]o\s*final|total\s*de\s*pontos?)[:\s]*([\d.,]+)/i);
-  const pontosFinal = matchPontos ? matchPontos[1] : "Não identificado";
-
-  // Busca por assinaturas digitais / carimbos institucionais
-  const temAssinaturaDigital = /assinado\s*digitalmente|SIPAC|gov\.br|ICP-Brasil/i.test(texto);
-
-  return {
-    resultado: deferido ? "DEFERIDO" : "INDEFERIDO / EM EXIGÊNCIA",
-    pontos: pontosFinal,
-    assinado: temAssinaturaDigital,
-    rawText: texto
-  };
-}
-
-function exibirMinutaParaAssinatura(dados) {
-  const resSection = document.getElementById('resultadoSection');
-  const div = document.getElementById('comparacaoCampos');
-  
-  resSection.style.display = 'block';
-  div.innerHTML = `
-    <div style="background: #f8f9fa; padding: 15px; border-left: 4px solid #0056b3; margin-bottom: 15px;">
-      <h3>Resumo da Avaliação da CRSC</h3>
-      <p><strong>Resultado Detectado:</strong> <span style="color: ${dados.resultado === 'DEFERIDO' ? 'green' : 'red'};">${dados.resultado}</span></p>
-      <p><strong>Pontuação Homologada:</strong> ${dados.pontos}</p>
-      <p><strong>Validação de Assinatura/Carimbo:</strong> ${dados.assinado ? '✓ Detectada' : '⚠️ Não identificada no texto nativo'}</p>
-    </div>
-    <label><strong>Texto Extraído para Conferência:</strong></label>
-    <textarea rows="6" style="width:100%" readonly>${dados.rawText.substring(0, 1000)}...</textarea>
+// Função para baixar o Parecer SEACAR em HTML
+function baixarComoHTML(texto, nomeArquivo) {
+  const conteudoHTML = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Parecer SEACAR</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }
+        .cabecalho { text-align: center; font-weight: bold; margin-bottom: 30px; }
+        .conteudo { white-space: pre-wrap; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="conteudo">${texto}</div>
+    </body>
+    </html>
   `;
+
+  const blob = new Blob([conteudoHTML], { type: 'text/html;charset=utf-8' });
+  fazerDownload(blob, nomeArquivo);
+}
+
+// Função para baixar a Portaria em formato compatível com Word (.doc/.docx)
+function baixarComoDOCX(texto, nomeArquivo) {
+  const conteudoWord = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset='utf-8'></head>
+    <body style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5;">
+      ${texto.replace(/\n/g, '<br>')}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff' + conteudoWord], { type: 'application/msword' });
+  fazerDownload(blob, nomeArquivo);
+}
+
+// Auxiliar de disparo do download
+function fazerDownload(blob, nomeArquivo) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = nomeArquivo;
+  link.click();
 }
