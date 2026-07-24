@@ -14,34 +14,33 @@ async function extrairDadosParecerCRSC(file) {
         textoCompleto += pageText + "\n";
     }
 
-    // Normaliza espaços duplicados para facilitar a busca por expressão regular
+    // Normaliza espaços para facilitar a busca
     const textoLimpo = textoCompleto.replace(/\s+/g, ' ');
 
-    // Extração dos dados baseada no modelo real do parecer
-    const parecerStatus = extrairRegEx(textoLimpo, /Parecer:\s*(Favorável|Não Favorável|Desfavorável)/i) || "Favorável";
-    
+    // Identifica se o parecer é Favorável (DEFERIDO) ou Desfavorável/Não Favorável (INDEFERIDO)
+    const eFavoravel = /Parecer[:;]?\s*Favorável/i.test(textoLimpo) || 
+                       (!/Não Favorável|Desfavorável/i.test(textoLimpo) && /Favorável/i.test(textoLimpo));
+
     const dados = {
-        numeroProcesso: extrairRegEx(textoLimpo, /Processo:\s*([\d\.\/-]+)/i) || "Não identificado",
-        nomeServidor: extrairRegEx(textoLimpo, /Servidor\(a\):\s*([A-ZÁÉÍÓÚÃÕÂÊÔ\s]+?)(?=\s*Matrícula|\s*SIAPE|\s*Cargo)/i) || "Servidor Não Identificado",
-        siape: extrairRegEx(textoLimpo, /Matrícula SIAPE:\s*(\d+)/i) || "Não identificado",
-        cargo: extrairRegEx(textoLimpo, /Cargo:\s*([^\n\r]+?)(?=\s*Lotação|\s*Data)/i) || "Assistente em Administração",
-        lotacao: extrairRegEx(textoLimpo, /Lotação:\s*([^\n\r]+?)(?=\s*Data)/i) || "PROGESP",
+        // Dados do Processo e Servidor
+        numeroProcesso: extrairRegEx(textoLimpo, /Processo[:;]?\s*([\d\.\/-]+)/i) || "Não identificado",
+        nomeServidor: extrairRegEx(textoLimpo, /Servidor\(a\)[:;]?\s*([A-ZÁÉÍÓÚÃÕÂÊÔ\s]+?)(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|$))/i) || "Servidor Não Identificado",
+        siape: extrairRegEx(textoLimpo, /(?:Matrícula\s*)?SIAPE[:;]?\s*(\d+)/i) || "Não identificado",
+        cargo: extrairRegEx(textoLimpo, /Cargo[:;]?\s*([^\n\r;]+?)(?=\s*(?:Lotação|Data|$))/i) || "Assistente em Administração",
+        lotacao: extrairRegEx(textoLimpo, /Lotação[:;]?\s*([^\n\r;]+?)(?=\s*(?:Data|$))/i) || "UFFS",
         
-        // Dados específicos do RSC
-        nivelRsc: extrairRegEx(textoLimpo, /Nível de RSC requerido:\s*(RSC-PCCTAE\s*[I|V|X]+|RSC-[I|V|X]+|\d+)/i) || "RSC-PCCTAE V",
-        nivelConcedido: extrairRegEx(textoLimpo, /Nível concedido:\s*(RSC-PCCTAE\s*[I|V|X]+|RSC-[I|V|X]+|\d+)/i) || "RSC-PCCTAE V",
-        percentual: extrairRegEx(textoLimpo, /Percentual correspondente:\s*(\d+%?)/i) || "52%",
+        // Dados do RSC
+        nivelRsc: extrairRegEx(textoLimpo, /Nível de RSC requerido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Data|$))/i) || "RSC-PCCTAE V",
+        nivelConcedido: extrairRegEx(textoLimpo, /Nível concedido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Vigência|$))/i) || "RSC-PCCTAE V",
+        percentual: extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+%?)/i) || "52%",
         
-        // Pontuações
-        pontuacaoExigida: extrairRegEx(textoLimpo, /Pontuação mínima exigida:\s*(\d+)/i) || "0",
-        pontuacaoObtida: extrairRegEx(textoLimpo, /Pontuação obtida:\s*(\d+)/i) || "0",
-        saldoPontos: extrairRegEx(textoLimpo, /Saldo de pontuação para novos pedidos:\s*(\d+)/i) || "0",
+        // Pontuação e Datas
+        pontuacaoObtida: extrairRegEx(textoLimpo, /Pontuação obtida[:;]?\s*(\d+)/i) || "0",
+        dataRequerimento: extrairRegEx(textoLimpo, /Data do requerimento[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
+        dataVigencia: extrairRegEx(textoLimpo, /Vigência da Concessão a partir de[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
         
-        // Datas e Parecer
-        dataRequerimento: extrairRegEx(textoLimpo, /Data do requerimento:\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
-        dataVigencia: extrairRegEx(textoLimpo, /Vigência da Concessão a partir de:\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
-        parecer: parecerStatus,
-        resultado: parecerStatus.toLowerCase().includes("favorável") && !parecerStatus.toLowerCase().includes("não") ? "DEFERIDO" : "INDEFERIDO"
+        // Resultado Final
+        resultado: eFavoravel ? "DEFERIDO" : "INDEFERIDO"
     };
 
     return dados;
