@@ -6,7 +6,7 @@ async function extrairDadosParecerCRSC(file) {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let textoCompleto = "";
 
-    // Extrai o texto de todas as páginas do PDF
+    // Leitura textual de todas as páginas
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
@@ -14,9 +14,9 @@ async function extrairDadosParecerCRSC(file) {
         textoCompleto += pageText + "\n";
     }
 
-    // Procura as informações no texto extraído via Expressões Regulares (RegEx)
+    // Busca de metadados no texto extraído
     const dados = {
-        nomeServidor: extrairRegEx(textoCompleto, /(?:Nome|Servidor):\s*([A-ZÁÉÍÓÚÃÕÂÊÔ\s]+?)(?=\s*(?:SIAPE|Cargo|Lotação|\n|$))/i) || "Servidor não identificado",
+        nomeServidor: extrairRegEx(textoCompleto, /(?:Nome|Servidor):\s*([A-ZÁÉÍÓÚÃÕÂÊÔ\s]+?)(?=\s*(?:SIAPE|Cargo|Lotação|\n|$))/i) || "Servidor Não Identificado",
         siape: extrairRegEx(textoCompleto, /SIAPE:?\s*(\d+)/i) || "Não identificado",
         cargo: extrairRegEx(textoCompleto, /Cargo:?\s*([^\n\r,]+)/i) || "Não identificado",
         lotacao: extrairRegEx(textoCompleto, /(?:Lotação|Unidade):?\s*([^\n\r,]+)/i) || "UFFS",
