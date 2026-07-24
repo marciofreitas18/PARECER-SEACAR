@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Parecer SEACAR e Minuta PROGESP - UFFS</title>
+    <title>Sistema SEACAR / PROGESP - UFFS</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- Biblioteca para leitura de PDF no Navegador -->
+    <!-- PDF.js - Leitor de PDF no Navegador -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -15,35 +16,42 @@
 </head>
 <body class="bg-light">
     <div class="container py-5">
-        <div class="card shadow-sm mx-auto" style="max-width: 800px;">
-            <div class="card-header bg-primary text-white">
-                <h3 class="card-title mb-0">Gerador SEACAR / PROGESP (UFFS)</h3>
+        <div class="card shadow mx-auto" style="max-width: 750px;">
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h4 class="mb-0">Gerador de Parecer SEACAR e Minuta PROGESP</h4>
+                <small>Universidade Federal da Fronteira Sul - UFFS</small>
             </div>
-            <div class="card-body">
-                <p class="card-text">Faça o upload do <b>Parecer da CRSC (PDF)</b> extraído do processo para gerar automaticamente o Parecer do SEACAR e a Minuta de Portaria.</p>
+            <div class="card-body p-4">
                 
-                <div class="mb-3">
-                    <label for="pdfCRSCInput" class="form-label font-weight-bold"><b>Selecione o arquivo PDF da CRSC:</b></label>
-                    <input class="form-control" type="file" id="pdfCRSCInput" accept=".pdf">
+                <div class="mb-4">
+                    <label for="pdfCRSCInput" class="form-label fw-bold">1. Selecione o PDF do Parecer emitido pela CRSC:</label>
+                    <input class="form-control form-control-lg" type="file" id="pdfCRSCInput" accept=".pdf">
+                    <div class="form-text">Envie o parecer extraído do processo no SIPAC.</div>
                 </div>
 
-                <div id="statusLeitura" class="alert alert-info d-none" role="alert">
+                <!-- Painel de Status -->
+                <div id="statusLeitura" class="alert alert-secondary text-center d-none" role="alert">
                     Aguardando envio do arquivo...
                 </div>
 
-                <div id="acoesGeracao" class="d-none mt-4 text-center">
-                    <hr>
-                    <h5>Documentos Prontos para Emissão:</h5>
-                    <div class="d-flex justify-content-center gap-3 mt-3">
-                        <button id="btnGerarSeacar" class="btn btn-outline-primary btn-lg">📄 Baixar Parecer SEACAR (.html)</button>
-                        <button id="btnGerarPortaria" class="btn btn-outline-success btn-lg">📜 Baixar Minuta Portaria (.doc)</button>
+                <!-- Painel de Ações e Downloads -->
+                <div id="acoesGeracao" class="d-none mt-4 pt-3 border-top">
+                    <h5 class="text-center mb-3 fw-bold text-secondary">2. Baixar Documentos Gerados</h5>
+                    <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                        <button id="btnGerarSeacar" class="btn btn-outline-primary btn-lg px-4">
+                            📄 Baixar Parecer SEACAR (.html)
+                        </button>
+                        <button id="btnGerarPortaria" class="btn btn-outline-success btn-lg px-4">
+                            📜 Baixar Minuta Portaria (.doc)
+                        </button>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Scripts do Sistema -->
+    <!-- Carregamento dos Scripts do Sistema -->
     <script src="js/parse-parecer-crsc.js"></script>
     <script src="js/parecer-seacar-pdf.js"></script>
     <script src="js/minuta-portaria-pdf.js"></script>
