@@ -75,7 +75,6 @@ function gerarMinutaPortaria(dados) {
             }
             .termo-resolve {
                 text-indent: 0cm;
-                text-align: center;
                 font-weight: bold;
                 margin-top: 15px;
                 margin-bottom: 15px;
