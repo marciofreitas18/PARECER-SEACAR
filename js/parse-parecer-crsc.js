@@ -1,111 +1,121 @@
 /**
- * Extrator de dados calibrado e ultra-resiliente para Pareceres CRSC/UFFS
+ * Extrai o texto de um PDF. Se o PDF for um documento nativo/vetorial,
+ * extrai via PDF.js. Se for uma imagem/digitalizado, ativa o OCR (Tesseract.js).
  */
-async function extrairDadosParecerCRSC(file) {
+async function parseParecerCRSC(file) {
+    if (typeof pdfjsLib === 'undefined') {
+        throw new Error("A biblioteca PDF.js não foi carregada corretamente.");
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let textoCompleto = "";
+    let textoCompleto = '';
 
+    // 1. Primeira tentativa: Extração vetorial direta de texto
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(" ");
-        textoCompleto += pageText + "\n";
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        textoCompleto += pageText + ' ';
     }
 
-    // Normaliza espaços e caracteres
-    const textoLimpo = textoCompleto.replace(/\s+/g, ' ');
+    let textoLimpo = textoCompleto.replace(/\s+/g, ' ').trim();
 
-    // 1. Número do Processo (SIPAC UFFS: 23205.XXXXXX/XXXX-XX)
-    const matchProc = textoLimpo.match(/23205\.\d{6}\/\d{4}-\d{2}/);
-    const numProcesso = matchProc ? matchProc[0] : (
-        extrairRegEx(textoLimpo, /Processo[:;]?\s*([\d\.\/-]{15,25})/i) || "Não identificado"
-    );
+    // 2. FALLBACK OCR: Executa se o PDF tiver pouquíssimo texto (documento escaneado / foto)
+    if (textoLimpo.length < 50) {
+        console.warn("PDF escaneado/imagem detectado. Executando processamento OCR...");
+        
+        const statusEl = document.getElementById('statusLeitura');
+        if (statusEl) {
+            statusEl.textContent = "🔍 Documento escaneado detectado! Processando leitor de imagem (OCR)... Aguarde.";
+        }
 
-    // 2. Servidor(a) / Interessado(a)
-    const nomeServidor = extrairRegEx(textoLimpo, /Servidor\(a\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|$))/i) ||
-                         extrairRegEx(textoLimpo, /INTERESSADO\(A\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:MATRÍCULA|SIAPE|CARGO|LOTAÇÃO|$))/i) || "Servidor Não Identificado";
+        textoCompleto = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 }); // Escala 2x para aumentar a precisão do OCR
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
 
-    // 3. Matrícula SIAPE
-    const siape = extrairRegEx(textoLimpo, /SIAPE[:;]?\s*(\d+)/i) || "Não identificado";
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-    // 4. Cargo e Lotação
-    const cargo = extrairRegEx(textoLimpo, /Cargo[:;]?\s*([^\n\r;]+?)(?=\s*(?:Lotação|Data|$))/i) || "Assistente em Administração";
-    const lotacao = extrairRegEx(textoLimpo, /Lotação[:;]?\s*([^\n\r;]+?)(?=\s*(?:Data|Nível|$))/i) || "UFFS";
+            if (typeof Tesseract !== 'undefined') {
+                const worker = await Tesseract.createWorker('por'); // Idioma Português
+                const { data: { text } } = await worker.recognize(canvas);
+                textoCompleto += text + ' ';
+                await worker.terminate();
+            } else {
+                throw new Error("Este PDF é uma imagem escaneada. O leitor Tesseract.js não foi carregado.");
+            }
+        }
+        textoLimpo = textoCompleto.replace(/\s+/g, ' ').trim();
+    }
 
-    // 5. CRSC / Campus Responsável
-    const comissoesValidas = ["Cerro Largo", "Chapecó", "Erechim", "Laranjeiras do Sul", "Realeza", "Reitoria", "Passo Fundo"];
-    let campusIdentificado = "Passo Fundo";
-    for (const c of comissoesValidas) {
-        if (new RegExp(c, "i").test(textoLimpo)) {
-            campusIdentificado = c;
-            break;
+    console.log("Texto Final Extraído do PDF:", textoLimpo);
+
+    // 3. Captura dos dados com expressões regulares (Regex) resilientes
+    const dados = {
+        nomeServidor: extrairRegex(textoLimpo, [
+            /(?:Interessado|Servidor|Nome|Avaliador|Requerente)[\s:]+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,60})/i,
+            /Parecer\s+relativo\s+a(?:o|s)?\s+servidor(?:a)?\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,60})/i,
+            /LAUCIR[A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]*/i
+        ]),
+        siape: extrairRegex(textoLimpo, [
+            /(?:SIAPE|Matrícula|Matricula)[\s:]*([0-9]{6,8})/i,
+            /SIAPE\s*n?º?\s*:?\s*([0-9]{6,8})/i
+        ]),
+        numeroProcesso: extrairRegex(textoLimpo, [
+            /(?:Processo|Nº|N.º)[\s:]*([0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2})/i,
+            /23205\.[0-9]{6}\/[0-9]{4}-[0-9]{2}/i
+        ]),
+        nivelSolicitado: extrairRegex(textoLimpo, [
+            /(RSC-PCCTAE-[I|V|X]+|RSC-[I|V|X]+)/i,
+            /Nível\s*(RSC-[I|V|X]+)/i
+        ]),
+        pontuacaoObtida: extrairRegex(textoLimpo, [
+            /(?:Pontuação\s+Obtida|Total\s+de\s+Pontos|Pontuação\s+Final|Pontos)[\s:]*([0-9]+(?:[.,][0-9]+)?)/i,
+            /([0-9]+(?:[.,][0-9]+)?)\s*ponto(?:s)?/i
+        ]),
+        dataExercicioComissao: extrairDataExercicio(textoLimpo)
+    };
+
+    if (dados.nivelSolicitado) {
+        dados.nivelSolicitado = dados.nivelSolicitado.replace('RSC-PCCTAE-', 'RSC-').toUpperCase();
+    }
+
+    return dados;
+}
+
+/**
+ * Utilitário de Regex auxiliar para buscar o primeiro termo correspondente numa lista de padrões
+ */
+function extrairRegex(texto, regexes) {
+    for (const reg of regexes) {
+        const match = texto.match(reg);
+        if (match && match[1]) {
+            return match[1].trim();
+        } else if (match && match[0] && !match[1]) {
+            return match[0].trim();
         }
     }
+    return '';
+}
 
-    // 6. Pontuação Homologada
-    const pontos = extrairRegEx(textoLimpo, /Pontuação\s*obtida[:;]?\s*([\d\.,]+)/i) || 
-                   extrairRegEx(textoLimpo, /Total\s*de\s*pontos\s*aceitos\s*neste\s*relatório[:;]?\s*([\d\.,]+)/i) ||
-                   extrairRegEx(textoLimpo, /Total\s*de\s*pontos\s*aceitos[:;]?\s*([\d\.,]+)/i) || "0";
-
-    // 7. Nível RSC e Percentual
-    let rawNivel = extrairRegEx(textoLimpo, /Nível\s*(?:de\s*RSC\s*requerido|concedido)[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Data|$))/i) || "RSC-V";
-    let nivelRomano = (extrairRegEx(rawNivel, /([I|V|X]+)/i) || "V").toUpperCase();
-
-    const tabelaRscParaPercentual = { 'VI': '75', 'V': '52', 'IV': '30', 'III': '25', 'II': '20', 'I': '15' };
-    let percentualFinal = tabelaRscParaPercentual[nivelRomano] || "52";
-
-    // 8. Data de Início do Exercício
-    const rawDataExercicio = extrairRegEx(textoLimpo, /exercício\s*(?:no\s*cargo\s*atual)?[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
-
-    let dataExercicioIso = "";
-    if (rawDataExercicio) {
-        const p = rawDataExercicio.split('/');
-        if (p.length === 3) dataExercicioIso = `${p[2]}-${p[1]}-${p[0]}`;
+/**
+ * Utilitário para localizar e converter datas no formato DD/MM/YYYY para YYYY-MM-DD
+ */
+function extrairDataExercicio(texto) {
+    const regexData = /(?:Exercício|Admissão|Ingresso|Data\s+de\s+Exercício)[\s:]*([0-9]{2}\/[0-9]{2}\/[0-9]{4})/i;
+    const match = texto.match(regexData);
+    if (match && match[1]) {
+        const [dia, mes, ano] = match[1].split('/');
+        return `${ano}-${mes}-${dia}`;
     }
-
-    // Outras datas
-    const rawDataRequerimento = extrairRegEx(textoLimpo, /Data\s*do\s*requerimento[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
-    const rawDataVigencia = extrairRegEx(textoLimpo, /a\s*partir\s*de[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || rawDataRequerimento;
-
-    // 9. Resultado Parecer
-    const eFavoravel = !/Não\s*Favorável|Desfavorável/i.test(textoLimpo) && /Favorável/i.test(textoLimpo);
-
-    return {
-        // Chaves duplas para compatibilidade total com a interface do seu sistema
-        numeroProcesso: numProcesso,
-        processo: numProcesso,
-        
-        nomeServidor: nomeServidor,
-        servidor: nomeServidor,
-        
-        siape: siape,
-        cargo: cargo,
-        lotacao: lotacao,
-        
-        campusCRSC: campusIdentificado,
-        
-        iqAtual: percentualFinal,
-        nivelSolicitado: `RSC-${nivelRomano}`,
-        nivelRscRomano: nivelRomano,
-        percentual: percentualFinal + "%",
-        pontuacaoObtida: pontos,
-        pontos: pontos,
-        
-        dataExercicio: dataExercicioIso,
-        dataExercicioComissao: dataExercicioIso,
-        dataRequerimento: rawDataRequerimento,
-        dataVigencia: rawDataVigencia,
-        dataDecisaoCRSC: rawDataRequerimento,
-        resultado: eFavoravel ? "DEFERIDO" : "INDEFERIDO"
-    };
+    return '';
 }
 
-function extrairRegEx(texto, regex) {
-    const match = texto.match(regex);
-    return match && match[1] ? match[1].trim() : null;
-}
-
-// Vincula a ambas as nomenclaturas de janela
-window.parseParecerCRSC = extrairDadosParecerCRSC;
-window.extrairDadosParecerCRSC = extrairDadosParecerCRSC;
+// Registra globalmente para uso pelo app.js
+window.parseParecerCRSC = parseParecerCRSC;
