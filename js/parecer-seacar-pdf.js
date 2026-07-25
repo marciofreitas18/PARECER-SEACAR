@@ -1,13 +1,13 @@
 /**
  * Gerador de Parecer Técnico SEACAR (.html)
- * Trata dinamicamente a CRSC emissora (Reitoria vs Campi)
+ * Trata dinamicamente a CRSC emissora e os cenários de Deferimento / Devolução / Indeferimento
  */
 function gerarParecerSEACAR(dados) {
     if (!dados || !dados.nomeServidor) {
         alert("Nenhum dado do processo foi carregado para gerar o Parecer.");
         return;
     }
-const unidadeOrigem = dados.unidadeCRSC || 'CRSC - Comissão de Reconhecimento de Saberes e Competências';
+
     const dataAtualExtenso = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     const dataHojeFormatada = new Date().toLocaleDateString('pt-BR');
 
@@ -16,16 +16,98 @@ const unidadeOrigem = dados.unidadeCRSC || 'CRSC - Comissão de Reconhecimento d
     const siape = dados.siape || 'XXXXXXX';
     const cargo = dados.cargo || 'XXXXXXXXXXXXXXX';
     const lotacao = dados.lotacao || 'XXXXXXXXXXX';
-    const nivelRomano = dados.nivelRscRomano || 'V';
+    const nivelRomano = dados.nivelRscRomano || dados.nivelSolicitado || 'V';
     const pontuacao = dados.pontuacaoObtida || '0.0';
     
-    // Tratamento dinâmico para Reitoria vs Campus
-    const comissaoNome = dados.campusCRSC || 'Passo Fundo';
-    const textoCRSC = comissaoNome.toLowerCase() === 'reitoria' 
-        ? 'CRSC Reitoria' 
-        : `CRSC Campus ${comissaoNome}`;
+    // Tratamento dinâmico para Reitoria vs Campus vs Campo Manual
+    let textoCRSC = 'CRSC - Comissão de Reconhecimento de Saberes e Competências';
+    if (dados.unidadeCRSC && dados.unidadeCRSC.trim() !== '') {
+        textoCRSC = dados.unidadeCRSC;
+    } else if (dados.campusCRSC) {
+        const comissaoNome = dados.campusCRSC;
+        textoCRSC = comissaoNome.toLowerCase() === 'reitoria' 
+            ? 'CRSC Reitoria' 
+            : `CRSC Campus ${comissaoNome}`;
+    }
 
-    const dataVigencia = dados.dataVigencia || dados.dataRequerimento || dataHojeFormatada;
+    const dataVigencia = dados.dataExercicio ? formatarDataBr(dados.dataExercicio) : (dados.dataVigencia || dados.dataRequerimento || dataHojeFormatada);
+    const resultado = dados.resultado || "DEFERIDO";
+    const impedimentos = dados.impedimentos || [];
+
+    // Lógica Dinâmica do Corpo do Parecer
+    let tituloAssunto = "ASSUNTO: Análise de conformidade legal e documental — RSC-PCCTAE.";
+    let secaoRelatorio = "";
+    let secaoAnalise = "";
+    let secaoConclusao = "";
+
+    if (resultado === "RETORNAR À CRSC" || resultado === "INDEFERIDO") {
+        const ehDevolucao = resultado === "RETORNAR À CRSC";
+        tituloAssunto = ehDevolucao 
+            ? "ASSUNTO: Devolução do processo para adequação / reanálise pela CRSC." 
+            : "ASSUNTO: Análise de conformidade legal — Indeferimento do pleito.";
+
+        secaoRelatorio = `
+            <p>
+                Trata-se de processo administrativo de solicitação de concessão de Reconhecimento de Saberes e Competências (RSC-PCCTAE), encaminhado pela <strong>${textoCRSC}</strong>, referente ao nível ${nivelRomano} do(a) servidor(a) supracitado(a).
+            </p>
+        `;
+
+        const listaPendencias = impedimentos.length > 0 
+            ? `<ul style="margin-top: 5px; margin-bottom: 10px;">${impedimentos.map(imp => `<li>${imp}</li>`).join('')}</ul>`
+            : `<p>Inconsistência cadastral ou documental identificada nos autos.</p>`;
+
+        secaoAnalise = `
+            <p>
+                Ao proceder à conferência instrucional e cadastral do processo à luz da Lei nº 11.091/2005, do Decreto nº 13.048/2026 e da Portaria nº 4725/GR/UFFS/2026, identificaram-se as seguintes pendências/impedimentos:
+            </p>
+            ${listaPendencias}
+        `;
+
+        if (ehDevolucao) {
+            secaoConclusao = `
+                <p>
+                    Em face do exposto, o SEACAR conclui pela <strong>NECESSIDADE DE DEVOLUÇÃO DO PROCESSO À ${textoCRSC.toUpperCase()}</strong> para conhecimento, reanálise e prestação dos esclarecimentos necessários ou correção dos dados informados.
+                </p>
+                <p>
+                    Encaminhe-se o processo à comissão de origem para as devidas providências.
+                </p>
+            `;
+        } else {
+            secaoConclusao = `
+                <p>
+                    Em face do exposto, o SEACAR conclui pelo <strong>INDEFERIMENTO</strong> da solicitação de RSC-PCCTAE Nível ${nivelRomano} devido ao descumprimento dos requisitos regulamentares vigentes.
+                </p>
+            `;
+        }
+    } else {
+        // Fluxo Padrão: DEFERIDO
+        secaoRelatorio = `
+            <p>
+                Trata-se de processo administrativo de solicitação de concessão de Reconhecimento de Saberes e Competências (RSC-PCCTAE), encaminhado pela <strong>${textoCRSC}</strong>, com decisão favorável ao deferimento do nível ${nivelRomano} ao(à) servidor(a) supracitado(a), com pontuação homologada de ${pontuacao} pontos.
+            </p>
+        `;
+
+        secaoAnalise = `
+            <p>
+                O SEACAR procedeu à conferência instrucional do processo à luz da Lei nº 11.091/2005, do Decreto nº 13.048/2026 e da Portaria nº 4725/GR/UFFS/2026, e à conferência cadastral dos dados funcionais do(a) servidor(a) frente à base oficial de servidores da UFFS.
+            </p>
+            <div class="subitem">
+                2.1. O(A) servidor(a) matrícula SIAPE ${siape} foi localizado(a) na base oficial.
+            </div>
+            <div class="subitem">
+                2.2. Os dados de nome, cargo e lotação informados no processo são idênticos aos constantes na base oficial da UFFS.
+            </div>
+        `;
+
+        secaoConclusao = `
+            <p>
+                Em face do exposto, o SEACAR conclui pela <strong>CONFORMIDADE LEGAL e CADASTRAL</strong> do processo em epígrafe, atestando estarem satisfeitos os requisitos do art. 13 do Decreto nº 13.048/2026 e do art. 20 da Portaria nº 4725/GR/UFFS/2026, e que os dados informados coincidem com o cadastro funcional oficial da UFFS.
+            </p>
+            <p>
+                Sugere-se o encaminhamento à Divisão de Avaliação e Carreira (DAC) e à Diretoria de Desenvolvimento de Pessoal (DDP) para os atos subsequentes e, na sequência, à Pró-Reitoria de Gestão de Pessoas (PROGESP) para expedição da respectiva Portaria de Concessão do RSC-PCCTAE Nível ${nivelRomano}, com efeitos financeiros a contar de ${dataVigencia}, nos termos do Decreto nº 13.048/2026.
+            </p>
+        `;
+    }
 
     const conteudoHTML = `
     <!DOCTYPE html>
@@ -139,32 +221,17 @@ const unidadeOrigem = dados.unidadeCRSC || 'CRSC - Comissão de Reconhecimento d
         </table>
 
         <div class="assunto">
-            ASSUNTO: Análise de conformidade legal e documental — RSC-PCCTAE.
+            ${tituloAssunto}
         </div>
 
         <h3 class="secao">1. RELATÓRIO</h3>
-        <p>
-            Trata-se de processo administrativo de solicitação de concessão de Reconhecimento de Saberes e Competências (RSC-PCCTAE), encaminhado pela <strong>${textoCRSC}</strong>, com decisão favorável ao deferimento do nível ${nivelRomano} ao(à) servidor(a) supracitado(a), com pontuação homologada de ${pontuacao} pontos.
-        </p>
+        ${secaoRelatorio}
 
         <h3 class="secao">2. ANÁLISE DE CONFORMIDADE</h3>
-        <p>
-            O SEACAR procedeu à conferência instrucional do processo à luz da Lei nº 11.091/2005, do Decreto nº 13.048/2026 e da Portaria nº 4725/GR/UFFS/2026, e à conferência cadastral dos dados funcionais do(a) servidor(a) frente à base oficial de servidores da UFFS.
-        </p>
-        <div class="subitem">
-            2.1. O(A) servidor(a) matrícula SIAPE ${siape} foi localizado(a) na base oficial.
-        </div>
-        <div class="subitem">
-            2.2. Os dados de nome, cargo e lotação informados no processo são idênticos aos constantes na base oficial da UFFS.
-        </div>
+        ${secaoAnalise}
 
         <h3 class="secao">3. CONCLUSÃO</h3>
-        <p>
-            Em face do exposto, o SEACAR conclui pela CONFORMIDADE LEGAL e CADASTRAL do processo em epígrafe, atestando estarem satisfeitos os requisitos do art. 13 do Decreto nº 13.048/2026 e do art. 20 da Portaria nº 4725/GR/UFFS/2026, e que os dados informados coincidem com o cadastro funcional oficial da UFFS.
-        </p>
-        <p>
-            Sugere-se o encaminhamento à Divisão de Avaliação e Carreira (DAC) e à Diretoria de Desenvolvimento de Pessoal (DDP) para os atos subsequentes e, na sequência, à Pró-Reitoria de Gestão de Pessoas (PROGESP) para expedição da respectiva Portaria de Concessão do RSC-PCCTAE Nível ${nivelRomano}, com efeitos financeiros a contar de ${dataVigencia}, nos termos do Decreto nº 13.048/2026.
-        </p>
+        ${secaoConclusao}
 
         <div class="data-local">
             Chapecó-SC, ${dataAtualExtenso}.
@@ -181,7 +248,7 @@ const unidadeOrigem = dados.unidadeCRSC || 'CRSC - Comissão de Reconhecimento d
     const blob = new Blob([conteudoHTML], { type: 'text/html;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Parecer_SEACAR_${processo.replace(/[\/\.]/g, '_')}.html`;
+    link.download = `Parecer_SEACAR_${resultado.replace(/\s+/g, '_')}_${processo.replace(/[\/\.]/g, '_')}.html`;
     
     document.body.appendChild(link);
     link.click();
