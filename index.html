@@ -81,17 +81,25 @@
                                 <label for="inputSiape" class="form-label fw-semibold">Matrícula SIAPE:</label>
                                 <input type="text" id="inputSiape" class="form-control" placeholder="Ex: 1234567">
                             </div>
-                            
-                            <div class="col-md-4">
-                                <label for="inputNumeroProcesso" class="form-label fw-semibold">Nº do Processo:</label>
-                                <input type="text" id="inputNumeroProcesso" class="form-control" placeholder="23205.XXXXXX/XXXX-XX">
+
+                            <!-- CAMPO AJUSTADO: Lotação do Servidor -->
+                            <div class="col-md-6">
+                                <label for="inputLotacaoServidor" class="form-label fw-semibold">Lotação do Servidor:</label>
+                                <input type="text" id="inputLotacaoServidor" class="form-control" placeholder="Ex: Coordenação Adjunta de Áreas Experimentais">
                             </div>
-                            <div class="col-md-4">
+
+                            <div class="col-md-6">
+                                <label for="inputNumeroProcesso" class="form-label fw-semibold">Nº do Processo:</label>
+                                <input type="text" id="inputNumeroProcesso" class="form-control" placeholder="23205.XXXXXX/2026-XX">
+                            </div>
+
+                            <div class="col-md-6">
                                 <label for="inputPontuacao" class="form-label fw-semibold">Pontuação Obtida:</label>
                                 <input type="number" step="0.1" id="inputPontuacao" class="form-control" placeholder="Ex: 85.0">
                             </div>
-                            <div class="col-md-4">
-                                <label for="inputDataParecer" class="form-label fw-semibold">Data de Exercício informada no requerimento:</label>
+                            
+                            <div class="col-md-6">
+                                <label for="inputDataParecer" class="form-label fw-semibold">Data do Parecer / Requerimento:</label>
                                 <input type="date" id="inputDataParecer" class="form-control">
                             </div>
                         </div>
@@ -101,19 +109,19 @@
                     <div id="secaoValidacoes" class="mt-4 p-4 bg-white rounded-uffs border border-brand-soft shadow-sm d-none">
                         <h5 class="fw-bold text-brand-uffs mb-3 border-bottom pb-2">3. Validações Técnicas e Legais</h5>
 
-                        <div class="col-md-4">
-    <label for="inputCRSC" class="form-label fw-semibold">CRSC / Unidade de Origem:</label>
-    <select id="inputCRSC" class="form-select">
-        <option value="">-- Selecione a CRSC --</option>
-        <option value="CRSC - Reitoria">CRSC - Reitoria</option>
-        <option value="CRSC - Campus Chapecó">CRSC - Campus Chapecó</option>
-        <option value="CRSC - Campus Cerro Largo">CRSC - Campus Cerro Largo</option>
-        <option value="CRSC - Campus Erechim">CRSC - Campus Erechim</option>
-        <option value="CRSC - Campus Passo Fundo">CRSC - Campus Passo Fundo</option>
-        <option value="CRSC - Campus Laranjeiras do Sul">CRSC - Campus Laranjeiras do Sul</option>
-        <option value="CRSC - Campus Realeza">CRSC - Campus Realeza</option>
-    </select>
-</div>
+                        <div class="col-md-6 mb-3">
+                            <label for="inputCRSC" class="form-label fw-semibold">CRSC / Unidade de Origem:</label>
+                            <select id="inputCRSC" class="form-select">
+                                <option value="">-- Selecione a CRSC --</option>
+                                <option value="CRSC - Reitoria">CRSC - Reitoria</option>
+                                <option value="CRSC - Campus Chapecó">CRSC - Campus Chapecó</option>
+                                <option value="CRSC - Campus Cerro Largo">CRSC - Campus Cerro Largo</option>
+                                <option value="CRSC - Campus Erechim">CRSC - Campus Erechim</option>
+                                <option value="CRSC - Campus Passo Fundo">CRSC - Campus Passo Fundo</option>
+                                <option value="CRSC - Campus Laranjeiras do Sul">CRSC - Campus Laranjeiras do Sul</option>
+                                <option value="CRSC - Campus Realeza">CRSC - Campus Realeza</option>
+                            </select>
+                        </div>
                         
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
@@ -196,6 +204,7 @@
                                         <th>Processo</th>
                                         <th>Servidor(a)</th>
                                         <th>Cargo</th>
+                                        <th>Lotação</th>
                                         <th>SIAPE</th>
                                         <th>Nível</th>
                                         <th>Resultado</th>
