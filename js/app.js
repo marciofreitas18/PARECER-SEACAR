@@ -1,12 +1,73 @@
-// Matriz de Requisitos - Decreto nº 13.048/2026 (Art. 5º, § 1º)
+// Matriz de Requisitos da Titulação/IQ Atual do Servidor por Nível Solicitado
 const REQUISITOS_DECRETO_13048 = {
-    'RSC-I':   { iqMinimo: 10,  descricao: 'sem ensino fundamental completo (IQ 10%)' },
-    'RSC-II':  { iqMinimo: 15,  descricao: 'ensino fundamental completo (IQ 15%)' },
-    'RSC-III': { iqMinimo: 25,  descricao: 'ensino médio ou técnico (IQ 25%)' },
-    'RSC-IV':  { iqMinimo: 30,  descricao: 'graduação no ensino superior (IQ 30%)' },
-    'RSC-V':   { iqMinimo: 52,  descricao: 'pós-graduação lato sensu (IQ 52%)' },
-    'RSC-VI':  { iqMinimo: 75,  descricao: 'mestrado (IQ 75%)' }
+    'RSC-I':   { iqExigido: 10,  descricao: 'Sem ensino fundamental completo (IQ 10%)' },
+    'RSC-II':  { iqExigido: 15,  descricao: 'Ensino fundamental completo (IQ 15%)' },
+    'RSC-III': { iqExigido: 15,  descricao: 'Ensino fundamental completo (IQ 15%)' },
+    'RSC-IV':  { iqExigido: 25,  descricao: 'Ensino Médio / Técnico (IQ 25%)' },
+    'RSC-V':   { iqExigido: 30,  descricao: 'Graduação / Ensino Superior (IQ 30%)' },
+    'RSC-VI':  { iqExigido: 52,  descricao: 'Especialização / Lato Sensu (IQ 52%)' }
 };
+
+// Lógica de Validação do Decreto
+function executarValidacoesRegras() {
+    let impedimentos = [];
+    let requerDevolucaoCRSC = false;
+
+    // 1. Validação do IQ Atual vs RSC Solicitado
+    const iqVal = parseInt(selectIQAtual.value, 10);
+    const rscVal = selectRscSolicitado.value;
+
+    if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
+        const regra = REQUISITOS_DECRETO_13048[rscVal];
+        
+        // Exige que o servidor possua exatamente a titulação/IQ de origem estipulada
+        if (iqVal < regra.iqExigido) {
+            impedimentos.push(`Incompatibilidade de Titulação (Dec. 13.048/2026): Para solicitar o ${rscVal}, o servidor deve possuir IQ Atual de no mínimo ${regra.iqExigido}% (${regra.descricao}). O IQ informado é de ${iqVal}%.`);
+            
+            alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Requisito Não Preenchido:</strong> O nível <strong>${rscVal}</strong> exige que o servidor possua IQ de no mínimo <strong>${regra.iqExigido}%</strong> (${regra.descricao}).`;
+            alertaIncompatibilidadeRSC.classList.remove('d-none');
+        } else {
+            alertaIncompatibilidadeRSC.classList.add('d-none');
+        }
+    }
+
+    // 2. Validação de Estágio Probatório
+    if (selectEstagioProbatorio.value === 'sim') {
+        impedimentos.push("Servidor em Estágio Probatório (Impedimento legal para concessão de RSC).");
+    }
+
+    // 3. Validação de Divergência da Data de Exercício
+    const dataDigitada = inputDataExercicio.value;
+    const dataPDF = window.dadosExtraidosPDF.dataExercicioComissao;
+    if (dataDigitada && dataPDF && dataDigitada !== dataPDF) {
+        requerDevolucaoCRSC = true;
+        msgDivergenciaData.classList.remove('d-none');
+        impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
+    } else {
+        msgDivergenciaData.classList.add('d-none');
+    }
+
+    // Atualização da Interface e Botões
+    if (impedimentos.length > 0) {
+        alertaRetornoComissao.classList.remove('d-none');
+        alertaRetornoComissao.className = requerDevolucaoCRSC ? "alert alert-warning mt-3 mb-0" : "alert alert-danger mt-3 mb-0";
+        alertaRetornoComissao.innerHTML = `<strong>⚠️ Ocorrências Detectadas:</strong><br>- ${impedimentos.join('<br>- ')}`;
+        
+        // Bloqueia a Portaria de Concessão em caso de inconsistência/indeferimento
+        btnGerarPortaria.disabled = true;
+        window.dadosExtraidosPDF.resultado = requerDevolucaoCRSC ? "RETORNAR À CRSC" : "INDEFERIDO";
+    } else {
+        alertaRetornoComissao.classList.add('d-none');
+        btnGerarPortaria.disabled = false;
+        window.dadosExtraidosPDF.resultado = "DEFERIDO";
+    }
+
+    // Sincroniza o objeto global
+    window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
+    window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
+    window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
+    window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+}
 
 // Objeto global de dados do processo atual
 window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
