@@ -1,6 +1,6 @@
 /**
  * Extrator de dados calibrado para o Parecer da Comissão (CRSC/UFFS)
- * Identifica as 7 CRSCs oficiais: Cerro Largo, Chapecó, Erechim, Laranjeiras do Sul, Realeza, Reitoria e Passo Fundo
+ * Com vinculação e mapeamento automático entre Nível de RSC e Percentual do IQ
  */
 async function extrairDadosParecerCRSC(file) {
     const arrayBuffer = await file.arrayBuffer();
@@ -18,7 +18,7 @@ async function extrairDadosParecerCRSC(file) {
     // Normaliza espaços para facilitar a busca
     const textoLimpo = textoCompleto.replace(/\s+/g, ' ');
 
-    // 1. Mapeamento e Identificação Estrita da CRSC Responsável
+    // 1. Mapeamento da CRSC Responsável
     const comissoesValidas = [
         "Cerro Largo",
         "Chapecó",
@@ -29,10 +29,9 @@ async function extrairDadosParecerCRSC(file) {
         "Passo Fundo"
     ];
 
-    let comissaoIdentificada = "Passo Fundo"; // Fallback padrão caso não encontre no PDF
+    let comissaoIdentificada = "Passo Fundo"; // Fallback padrão
 
     for (const comissao of comissoesValidas) {
-        // Busca variações como "CRSC Campus Cerro Largo", "CRSC Cerro Largo", "CRSC Reitoria", etc.
         const regexComissao = new RegExp(`CRSC(?:\\s*Campus|\\s*da\\s*Unidade|\\s*do\\s*Campus)?\\s*${comissao}`, "i");
         if (regexComissao.test(textoLimpo)) {
             comissaoIdentificada = comissao;
@@ -40,28 +39,51 @@ async function extrairDadosParecerCRSC(file) {
         }
     }
 
-    // 2. Identifica se o parecer é Favorável (DEFERIDO)
+    // 2. Número do Processo (Busca flexível: Processo, Processo Nº, Processo SIPAC, etc.)
+    const numeroProcessoExtraido = extrairRegEx(textoLimpo, /(?:Processo(?:\s*SIPAC)?(?:\s*Nº|\s*nº|\s*num|\s*número)?[:;]?)\s*([\d\.\/-]{15,25})/i) || 
+                                  extrairRegEx(textoLimpo, /([\d]{5}\.[\d]{6}\/[\d]{4}-[\d]{2})/i) || 
+                                  "Não identificado";
+
+    // 3. Identifica se o parecer é Favorável (DEFERIDO)
     const eFavoravel = /Parecer[:;]?\s*Favorável/i.test(textoLimpo) || 
                        (!/Não Favorável|Desfavorável/i.test(textoLimpo) && /Favorável/i.test(textoLimpo));
 
-    // 3. Captura da pontuação obtida
+    // 4. Captura da pontuação obtida
     const pontos = extrairRegEx(textoLimpo, /Pontuação obtida[:;]?\s*([\d\.,]+)/i) || 
                    extrairRegEx(textoLimpo, /Total de pontos aceitos[:;]?\s*([\d\.,]+)/i) || 
                    extrairRegEx(textoLimpo, /pontuação homologada de\s*([\d\.,]+)/i) ||
                    extrairRegEx(textoLimpo, /(?:Pontuação|Pontos|Total)[:;]?\s*([\d\.,]+)/i) || "0";
 
-    // 4. Extração e normalização do IQ (porcentagem pura)
-    const rawIQ = extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+)%?/i) || 
-                  extrairRegEx(textoLimpo, /(?:IQ|Incentivo à Qualificação)[:;]?\s*(\d+)%?/i) || "52";
-
-    // 5. Extração e normalização do Nível RSC
+    // 5. Extração do Nível RSC
     let rawNivel = extrairRegEx(textoLimpo, /Nível de RSC requerido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Data|$))/i) || 
                    extrairRegEx(textoLimpo, /(RSC-PCCTAE-[I|V|X]+|RSC-[I|V|X]+|Nível\s*[I|V|X]+)/i) || "RSC-V";
     
     let nivelApenasRomano = extrairRegEx(rawNivel, /([I|V|X]+)/i) || "V";
+    nivelApenasRomano = nivelApenasRomano.toUpperCase();
     let nivelFormatado = `RSC-${nivelApenasRomano}`;
 
-    // 6. Datas do Parecer da Comissão
+    // 6. Regra de Negócio: Mapeamento do % do IQ proporcional ao Nível de RSC
+    // Se o PDF trouxer um valor válido ele usa, caso contrário/divergente, aplica a regra oficial
+    const tabelaIqRsc = {
+        'VI': '75',
+        'V': '52',
+        'IV': '30',
+        'III': '25',
+        'II': '20',
+        'I': '15'
+    };
+
+    let percentualIq = tabelaIqRsc[nivelApenasRomano] || "52";
+
+    // Se no PDF houver um percentual explícito, tenta capturar
+    const rawIQ = extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+)%?/i) || 
+                  extrairRegEx(textoLimpo, /(?:IQ|Incentivo à Qualificação)[:;]?\s*(\d+)%?/i);
+
+    if (rawIQ) {
+        percentualIq = rawIQ;
+    }
+
+    // 7. Datas do Parecer da Comissão
     const rawDataExercicio = extrairRegEx(textoLimpo, /Data de início do exercício no cargo atual[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || 
                              extrairRegEx(textoLimpo, /Data de Exercício[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || 
                              extrairRegEx(textoLimpo, /Data de ingresso[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
@@ -82,21 +104,20 @@ async function extrairDadosParecerCRSC(file) {
     }
 
     const dados = {
-        numeroProcesso: extrairRegEx(textoLimpo, /Processo(?:\s*SIPAC)?\s*Nº[:;]?\s*([\d\.\/-]+)/i) || "Não identificado",
+        numeroProcesso: numeroProcessoExtraido,
         nomeServidor: extrairRegEx(textoLimpo, /INTERESSADO\(A\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:MATRÍCULA|SIAPE|CARGO|LOTAÇÃO|$))/i) || 
                       extrairRegEx(textoLimpo, /Servidor\(a\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|$))/i) || "Servidor Não Identificado",
         siape: extrairRegEx(textoLimpo, /(?:MATRÍCULA\s*)?SIAPE[:;]?\s*(\d+)/i) || "Não identificado",
         cargo: extrairRegEx(textoLimpo, /CARGO[:;]?\s*([^\n\r;]+?)(?=\s*(?:LOTAÇÃO|Lotação|Data|$))/i) || "Assistente em Administração",
         lotacao: extrairRegEx(textoLimpo, /LOTAÇÃO[:;]?\s*([^\n\r;]+?)(?=\s*(?:NÍVEL|Nível|Data|$))/i) || "UFFS",
         
-        // Comissão Unidade/Campus (Cerro Largo, Chapecó, Erechim, Laranjeiras do Sul, Realeza, Reitoria, Passo Fundo)
         campusCRSC: comissaoIdentificada,
         dataDecisaoCRSC: rawDataDecisao,
         
-        iqAtual: rawIQ,
+        iqAtual: percentualIq,
         nivelSolicitado: nivelFormatado,
         nivelRscRomano: nivelApenasRomano,
-        percentual: rawIQ + "%",
+        percentual: percentualIq + "%",
         pontuacaoObtida: pontos,
         
         dataExercicioComissao: dataExercicioIso,
