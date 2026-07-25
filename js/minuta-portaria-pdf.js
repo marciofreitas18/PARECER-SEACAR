@@ -1,6 +1,6 @@
 /**
  * Gerador de Minuta de Portaria PROGESP (.doc)
- * Ajustado conforme as normas de Redação Oficial (Artigos em negrito, RESOLVE em destaque)
+ * Formatação oficial com numeração e destaque em artigos (Art. 1º, Art. 2º)
  */
 function gerarMinutaPortaria(dados) {
     if (!dados || !dados.nomeServidor) {
@@ -75,8 +75,8 @@ function gerarMinutaPortaria(dados) {
             }
             .artigo { 
                 text-indent: 1.25cm; 
-                margin-top: 10px;
-                margin-bottom: 10px; 
+                margin-top: 12px;
+                margin-bottom: 12px; 
             }
             .data-local { 
                 margin-top: 40px; 
