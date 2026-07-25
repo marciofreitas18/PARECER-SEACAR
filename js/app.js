@@ -78,9 +78,43 @@ function inicializarApp() {
     carregarHistoricoTabela();
 }
 
+/**
+ * Limpa os campos de entrada do formulário sem apagar o histórico acumulado no controle
+ */
+function limparFormularioProcesso() {
+    // 1. Reset do campo de upload de PDF
+    if (pdfCRSCInput) pdfCRSCInput.value = '';
+
+    // 2. Reset das seleções e inputs
+    if (selectIQAtual) selectIQAtual.selectedIndex = 0;
+    if (selectRscSolicitado) selectRscSolicitado.selectedIndex = 0;
+    if (selectEstagioProbatorio) selectEstagioProbatorio.selectedIndex = 0;
+    if (inputDataExercicio) inputDataExercicio.value = '';
+
+    // 3. Oculta mensagens de erro e seções condicionais
+    if (secaoValidacoes) secaoValidacoes.classList.add('d-none');
+    if (acoesGeracao) acoesGeracao.classList.add('d-none');
+    if (statusLeitura) statusLeitura.classList.add('d-none');
+    if (alertaIncompatibilidadeRSC) alertaIncompatibilidadeRSC.classList.add('d-none');
+    if (alertaRetornoComissao) alertaRetornoComissao.classList.add('d-none');
+    if (msgDivergenciaData) msgDivergenciaData.classList.add('d-none');
+
+    // 4. Zera o objeto temporário em memória
+    window.dadosExtraidosPDF = {};
+}
+
+// Expõe globalmente para o botão do HTML
+window.limparFormularioProcesso = limparFormularioProcesso;
+
 async function processarArquivoPDF(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // 🧹 Limpa formulários anteriores antes do processamento do novo PDF
+    limparFormularioProcesso();
+    
+    // Readiciona a seleção do arquivo atual após o reset
+    e.target.files = e.target.files;
 
     if (statusLeitura) {
         statusLeitura.classList.remove('d-none', 'alert-danger', 'alert-success');
