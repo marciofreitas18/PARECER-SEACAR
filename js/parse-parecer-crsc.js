@@ -1,6 +1,6 @@
 /**
  * Extrator de dados calibrado para o Parecer da Comissão (CRSC/UFFS)
- * Com vinculação e mapeamento automático entre Nível de RSC e Percentual do IQ
+ * Captura resiliente de processo em qualquer formato do SIPAC (ex: 23205.020856/2026-48)
  */
 async function extrairDadosParecerCRSC(file) {
     const arrayBuffer = await file.arrayBuffer();
@@ -15,7 +15,7 @@ async function extrairDadosParecerCRSC(file) {
         textoCompleto += pageText + "\n";
     }
 
-    // Normaliza espaços para facilitar a busca
+    // Normaliza múltiplos espaços e quebras de linha em espaço simples
     const textoLimpo = textoCompleto.replace(/\s+/g, ' ');
 
     // 1. Mapeamento da CRSC Responsável
@@ -39,10 +39,13 @@ async function extrairDadosParecerCRSC(file) {
         }
     }
 
-    // 2. Número do Processo (Busca flexível: Processo, Processo Nº, Processo SIPAC, etc.)
-    const numeroProcessoExtraido = extrairRegEx(textoLimpo, /(?:Processo(?:\s*SIPAC)?(?:\s*Nº|\s*nº|\s*num|\s*número)?[:;]?)\s*([\d\.\/-]{15,25})/i) || 
-                                  extrairRegEx(textoLimpo, /([\d]{5}\.[\d]{6}\/[\d]{4}-[\d]{2})/i) || 
-                                  "Não identificado";
+    // 2. Captura do Processo SIPAC (Busca específica para o padrão UFFS: 23205.XXXXXX/XXXX-XX)
+    const matchProcessoPadrao = textoLimpo.match(/\b(23205\.\d{6}\/\d{4}-\d{2})\b/);
+    
+    const numeroProcessoExtraido = matchProcessoPadrao ? matchProcessoPadrao[1] : (
+        extrairRegEx(textoLimpo, /(?:Processo(?:\s*SIPAC)?(?:\s*Nº|\s*nº|\s*num|\s*número)?[:;]?)\s*([\d\.\/-]{15,25})/i) || 
+        "Não identificado"
+    );
 
     // 3. Identifica se o parecer é Favorável (DEFERIDO)
     const eFavoravel = /Parecer[:;]?\s*Favorável/i.test(textoLimpo) || 
@@ -62,8 +65,7 @@ async function extrairDadosParecerCRSC(file) {
     nivelApenasRomano = nivelApenasRomano.toUpperCase();
     let nivelFormatado = `RSC-${nivelApenasRomano}`;
 
-    // 6. Regra de Negócio: Mapeamento do % do IQ proporcional ao Nível de RSC
-    // Se o PDF trouxer um valor válido ele usa, caso contrário/divergente, aplica a regra oficial
+    // 6. Mapeamento do IQ Proporcional ao RSC
     const tabelaIqRsc = {
         'VI': '75',
         'V': '52',
@@ -75,7 +77,6 @@ async function extrairDadosParecerCRSC(file) {
 
     let percentualIq = tabelaIqRsc[nivelApenasRomano] || "52";
 
-    // Se no PDF houver um percentual explícito, tenta capturar
     const rawIQ = extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+)%?/i) || 
                   extrairRegEx(textoLimpo, /(?:IQ|Incentivo à Qualificação)[:;]?\s*(\d+)%?/i);
 
