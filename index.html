@@ -9,12 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-  <!-- PDF.js CDN em versão estável -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-  // Configuração obrigatória do Worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-</script>
+    <!-- PDF.js CDN em versão estável (carregado de forma segura) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body class="bg-light">
 
@@ -61,15 +57,15 @@
                         <!-- IQ Atual -->
                         <div class="col-md-6">
                             <label for="selectIQAtual" class="form-label fw-semibold">IQ / Titulação Atual do Servidor:</label>
-                           <select id="selectIQAtual" class="form-select">
-    <option value="">Selecione o IQ atual...</option>
-    <option value="10">10% - Sem Ensino Fundamental Completo</option>
-    <option value="15">15% - Ensino Fundamental Completo</option>
-    <option value="25">25% - Ensino Médio / Técnico (Requisito para RSC-IV)</option>
-    <option value="30">30% - Graduação (Requisito para RSC-V)</option>
-    <option value="52">52% - Especialização / Lato Sensu (Requisito para RSC-VI)</option>
-    <option value="75">75% - Mestrado</option>
-</select>
+                            <select id="selectIQAtual" class="form-select">
+                                <option value="">Selecione o IQ atual...</option>
+                                <option value="10">10% - Sem Ensino Fundamental Completo</option>
+                                <option value="15">15% - Ensino Fundamental Completo</option>
+                                <option value="25">25% - Ensino Médio / Técnico (Requisito para RSC-IV)</option>
+                                <option value="30">30% - Graduação (Requisito para RSC-V)</option>
+                                <option value="52">52% - Especialização / Lato Sensu (Requisito para RSC-VI)</option>
+                                <option value="75">75% - Mestrado</option>
+                            </select>
                         </div>
 
                         <!-- RSC Solicitado -->
@@ -164,7 +160,14 @@
         </div>
     </div>
 
-    <!-- Scripts do Sistema -->
+    <!-- Inicialização Segura do Worker PDF.js -->
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+
+    <!-- Scripts da Aplicação (na ordem exata de dependência) -->
     <script src="js/parse-parecer-crsc.js"></script>
     <script src="js/parecer-seacar-pdf.js"></script>
     <script src="js/minuta-portaria-pdf.js"></script>
