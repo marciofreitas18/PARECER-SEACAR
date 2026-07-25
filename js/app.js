@@ -8,100 +8,6 @@ const REQUISITOS_DECRETO_13048 = {
     'RSC-VI':  { iqExigido: 52,  descricao: 'Especialização / Lato Sensu (IQ 52%)' }
 };
 
-// Lógica de Validação e Comparação
-function executarValidacoesRegras() {
-    let impedimentos = [];
-    let requerDevolucaoCRSC = false;
-
-    // 1. Validação do IQ Atual vs RSC Solicitado (Dec. 13.048/2026)
-    const iqVal = parseInt(selectIQAtual.value, 10);
-    const rscVal = selectRscSolicitado.value;
-
-    if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
-        const regra = REQUISITOS_DECRETO_13048[rscVal];
-        
-        if (iqVal < regra.iqExigido) {
-            impedimentos.push(`Incompatibilidade de Titulação (Dec. 13.048/2026): Para solicitar o ${rscVal}, o servidor deve possuir IQ Atual de no mínimo ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
-            
-            alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Requisito Não Preenchido:</strong> O nível <strong>${rscVal}</strong> exige que o servidor possua IQ de no mínimo <strong>${regra.iqExigido}%</strong> (${regra.descricao}).`;
-            alertaIncompatibilidadeRSC.classList.remove('d-none');
-        } else {
-            alertaIncompatibilidadeRSC.classList.add('d-none');
-        }
-    }
-
-    // 2. Validação de Estágio Probatório
-    if (selectEstagioProbatorio.value === 'sim') {
-        impedimentos.push("Servidor em Estágio Probatório (Impedimento legal para concessão de RSC).");
-    }
-
-    // 3. Validação da Data de Exercício (Comparação: Digitada > CRSC)
-    const dataDigitadaStr = inputDataExercicio.value; // Formato YYYY-MM-DD
-    const dataCRSCStr = window.dadosExtraidosPDF.dataExercicioComissao; // Formato YYYY-MM-DD
-
-    if (dataDigitadaStr && dataCRSCStr) {
-        // Converte para objetos de Data para comparação exata
-        const dataDigitada = new Date(dataDigitadaStr);
-        const dataCRSC = new Date(dataCRSCStr);
-
-        // Se a data digitada for MAIOR (posterior) que a data apontada pela CRSC
-        if (dataDigitada > dataCRSC) {
-            requerDevolucaoCRSC = true;
-            msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>MAIOR/POSTERIOR</strong> à lançada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
-            msgDivergenciaData.classList.remove('d-none');
-            
-            impedimentos.push(`Data de exercício informada (${formatarDataBr(dataDigitadaStr)}) é posterior à data considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). Necessário retorno para adequação dos cálculos de tempo.`);
-        } 
-        // Se houver qualquer outra divergência
-        else if (dataDigitadaStr !== dataCRSCStr) {
-            requerDevolucaoCRSC = true;
-            msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
-            msgDivergenciaData.classList.remove('d-none');
-            
-            impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
-        } 
-        else {
-            msgDivergenciaData.classList.add('d-none');
-        }
-    }
-
-    // Atualização da Interface e Botões
-    if (impedimentos.length > 0) {
-        alertaRetornoComissao.classList.remove('d-none');
-        
-        // Se a causa for divergência de data, destaca como ATENÇÃO / RETORNO À CRSC (amarelo)
-        // Se for Estágio Probatório ou Incompatibilidade de IQ, destaca como INDEFERIDO (vermelho)
-        if (requerDevolucaoCRSC) {
-            alertaRetornoComissao.className = "alert alert-warning mt-3 mb-0 shadow-sm";
-            alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA À CRSC:</strong><br>- ${impedimentos.join('<br>- ')}`;
-            window.dadosExtraidosPDF.resultado = "RETORNAR À CRSC";
-        } else {
-            alertaRetornoComissao.className = "alert alert-danger mt-3 mb-0 shadow-sm";
-            alertaRetornoComissao.innerHTML = `<strong>⛔ INDEFERIDO:</strong><br>- ${impedimentos.join('<br>- ')}`;
-            window.dadosExtraidosPDF.resultado = "INDEFERIDO";
-        }
-        
-        // Bloqueia a Portaria de Concessão
-        btnGerarPortaria.disabled = true;
-    } else {
-        alertaRetornoComissao.classList.add('d-none');
-        btnGerarPortaria.disabled = false;
-        window.dadosExtraidosPDF.resultado = "DEFERIDO";
-    }
-
-    // Sincroniza os dados selecionados no objeto global
-    window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
-    window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
-    window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
-    window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
-}
-
-// Função Auxiliar de Formatação de Data para exibição amigável (YYYY-MM-DD -> DD/MM/YYYY)
-function formatarDataBr(dataIso) {
-    if (!dataIso) return '';
-    const partes = dataIso.split('-');
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
-}
 // Objeto global de dados do processo atual
 window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
@@ -135,6 +41,7 @@ function inicializarApp() {
     selectIQAtual.addEventListener('change', executarValidacoesRegras);
     selectRscSolicitado.addEventListener('change', executarValidacoesRegras);
     inputDataExercicio.addEventListener('change', executarValidacoesRegras);
+    inputDataExercicio.addEventListener('input', executarValidacoesRegras); // Atualização instantânea ao digitar
     selectEstagioProbatorio.addEventListener('change', executarValidacoesRegras);
 
     btnGerarSeacar.addEventListener('click', () => window.gerarParecerSEACAR && window.gerarParecerSEACAR(window.dadosExtraidosPDF));
@@ -160,12 +67,11 @@ async function processarArquivoPDF(e) {
             const dados = await window.parseParecerCRSC(file);
             window.dadosExtraidosPDF = { ...window.dadosExtraidosPDF, ...dados };
             
-            // 1. Pré-seleciona os menus com base no PDF (mas permite que você altere)
+            // 1. Pré-seleciona os menus com base no PDF
             if (dados.iqAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
 
-            // 2. Se o PDF trouxe a data apurada pela comissão, guardamos para comparação
-            // O campo inputDataExercicio fica livre para você digitar a data oficial do assentamento
+            // 2. Preenche a data de exercício se o campo estiver vazio
             if (dados.dataExercicioComissao && !inputDataExercicio.value) {
                 inputDataExercicio.value = dados.dataExercicioComissao;
             }
@@ -176,7 +82,6 @@ async function processarArquivoPDF(e) {
             secaoValidacoes.classList.remove('d-none');
             acoesGeracao.classList.remove('d-none');
             
-            // Executa a primeira validação com os dados extraídos/digitados
             executarValidacoesRegras();
             salvarProcessoNoHistorico(window.dadosExtraidosPDF);
         } else {
@@ -189,7 +94,7 @@ async function processarArquivoPDF(e) {
     }
 }
 
-// Lógica de Validação Principal
+// Lógica de Validação Unificada e Corrigida
 function executarValidacoesRegras() {
     let impedimentos = [];
     let requerDevolucaoCRSC = false;
@@ -200,8 +105,10 @@ function executarValidacoesRegras() {
 
     if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
         const regra = REQUISITOS_DECRETO_13048[rscVal];
-        if (iqVal < regra.iqMinimo) {
-            impedimentos.push(`Incompatibilidade com Art. 5º, § 1º do Dec. 13.048/2026: Para ${rscVal} exige-se no mínimo ${regra.descricao}. IQ informado: ${iqVal}%.`);
+        
+        if (iqVal < regra.iqExigido) {
+            impedimentos.push(`Incompatibilidade com Dec. 13.048/2026: Para solicitar o ${rscVal}, exige-se IQ mínimo de ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
+            
             alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Incompatibilidade Legal:</strong> O nível <strong>${rscVal}</strong> exige no mínimo ${regra.descricao}.`;
             alertaIncompatibilidadeRSC.classList.remove('d-none');
         } else {
@@ -211,28 +118,53 @@ function executarValidacoesRegras() {
 
     // 2. Validação Estágio Probatório
     if (selectEstagioProbatorio.value === 'sim') {
-        impedimentos.push("Servidor em Estágio Probatório (Impedimento para concessão de RSC).");
+        impedimentos.push("Servidor em Estágio Probatório (Impedimento legal para concessão de RSC).");
     }
 
-    // 3. Validação Data de Exercício
-    const dataDigitada = inputDataExercicio.value;
-    const dataPDF = window.dadosExtraidosPDF.dataExercicioComissao;
-    if (dataDigitada && dataPDF && dataDigitada !== dataPDF) {
-        requerDevolucaoCRSC = true;
-        msgDivergenciaData.classList.remove('d-none');
-        impedimentos.push("Divergência entre a Data de Exercício informada e a apurada pela CRSC.");
-    } else {
-        msgDivergenciaData.classList.add('d-none');
+    // 3. Validação Data de Exercício (Comparação de Maior/Posterior)
+    const dataDigitadaStr = inputDataExercicio.value; // YYYY-MM-DD
+    const dataCRSCStr = window.dadosExtraidosPDF.dataExercicioComissao; // YYYY-MM-DD
+
+    if (dataDigitadaStr && dataCRSCStr) {
+        const dataDigitada = new Date(dataDigitadaStr);
+        const dataCRSC = new Date(dataCRSCStr);
+
+        // Se a data digitada for MAIOR (posterior) que a data apurada pela CRSC
+        if (dataDigitada > dataCRSC) {
+            requerDevolucaoCRSC = true;
+            msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>MAIOR/POSTERIOR</strong> à lançada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
+            msgDivergenciaData.classList.remove('d-none');
+            
+            impedimentos.push(`Data de exercício informada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). Necessário retorno para adequação dos cálculos.`);
+        } 
+        // Se houver qualquer outra divergência
+        else if (dataDigitadaStr !== dataCRSCStr) {
+            requerDevolucaoCRSC = true;
+            msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
+            msgDivergenciaData.classList.remove('d-none');
+            
+            impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
+        } 
+        else {
+            msgDivergenciaData.classList.add('d-none');
+        }
     }
 
-    // Atualização do Estado do Processo e Interface
+    // Atualização da Interface e Botões
     if (impedimentos.length > 0) {
         alertaRetornoComissao.classList.remove('d-none');
-        alertaRetornoComissao.className = requerDevolucaoCRSC ? "alert alert-warning mt-3 mb-0" : "alert alert-danger mt-3 mb-0";
-        alertaRetornoComissao.innerHTML = `<strong>⚠️ Ocorrências Detectadas:</strong><br>- ${impedimentos.join('<br>- ')}`;
         
-        btnGerarPortaria.disabled = true; // Bloqueia concessão
-        window.dadosExtraidosPDF.resultado = requerDevolucaoCRSC ? "RETORNAR À CRSC" : "INDEFERIDO";
+        if (requerDevolucaoCRSC) {
+            alertaRetornoComissao.className = "alert alert-warning mt-3 mb-0 shadow-sm";
+            alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA À CRSC:</strong><br>- ${impedimentos.join('<br>- ')}`;
+            window.dadosExtraidosPDF.resultado = "RETORNAR À CRSC";
+        } else {
+            alertaRetornoComissao.className = "alert alert-danger mt-3 mb-0 shadow-sm";
+            alertaRetornoComissao.innerHTML = `<strong>⛔ INDEFERIDO:</strong><br>- ${impedimentos.join('<br>- ')}`;
+            window.dadosExtraidosPDF.resultado = "INDEFERIDO";
+        }
+        
+        btnGerarPortaria.disabled = true;
     } else {
         alertaRetornoComissao.classList.add('d-none');
         btnGerarPortaria.disabled = false;
@@ -244,6 +176,13 @@ function executarValidacoesRegras() {
     window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
     window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
     window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+}
+
+// Auxiliar: Formatação de Data YYYY-MM-DD -> DD/MM/YYYY
+function formatarDataBr(dataIso) {
+    if (!dataIso) return '';
+    const partes = dataIso.split('-');
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
 // Gestão de Histórico no LocalStorage
