@@ -1,6 +1,6 @@
 /**
  * Gerador de Minuta de Portaria PROGESP (.doc)
- * Atualizado: Termo RESOLVE em linha separada e sem recuo inicial (text-indent: 0cm)
+ * Nome do arquivo padronizado estritamente como: "Portaria Progesp xxxx - Concede RSC a [NOME DO SERVIDOR].doc"
  */
 function gerarMinutaPortaria(dados) {
     if (!dados || !dados.nomeServidor) {
@@ -135,14 +135,13 @@ function gerarMinutaPortaria(dados) {
     </html>
     `;
 
-    // Download do arquivo .doc com a nomenclatura exata
+    // Download do arquivo .doc com a nomenclatura exatamente no padrão solicitado
     const blob = new Blob([conteudoDoc], { type: 'application/msword;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     
-    // Nome no padrão: Portaria Progesp xxxx - Concede RSC a [NOME DO SERVIDOR]
-    const numProcessoLimpo = processo.replace(/[\/\.]/g, '_');
-    link.download = `Portaria Progesp ${numProcessoLimpo} - Concede RSC a ${servidor}.doc`;
+    // Nome exato: Portaria Progesp xxxx - Concede RSC a [NOME DO SERVIDOR].doc
+    link.download = `Portaria Progesp xxxx - Concede RSC a ${servidor}.doc`;
     
     document.body.appendChild(link);
     link.click();
