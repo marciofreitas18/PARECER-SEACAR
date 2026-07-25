@@ -13,7 +13,7 @@ window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
 // Mapeamento Elementos do DOM
 let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
-let inputNomeServidor, inputCargoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer;
+let inputNomeServidor, inputCargoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputCRSC;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
     inputPontuacao = document.getElementById('inputPontuacao');
     inputDataParecer = document.getElementById('inputDataParecer');
+    inputCRSC = document.getElementById('inputCRSC'); // Novo campo CRSC
 
     // Campos de Validação
     selectIQAtual = document.getElementById('selectIQAtual');
@@ -62,7 +63,8 @@ function inicializarApp() {
         inputSiape, 
         inputNumeroProcesso, 
         inputPontuacao, 
-        inputDataParecer
+        inputDataParecer,
+        inputCRSC
     ];
 
     camposManuais.forEach(campo => {
@@ -72,14 +74,15 @@ function inicializarApp() {
         }
     });
 
-    if (selectIQAtual) selectIQAtual.addEventListener('change', executarValidacoesRegras);
-    if (selectRscSolicitado) selectRscSolicitado.addEventListener('change', executarValidacoesRegras);
+    if (selectIQAtual) selectIQAtual.addEventListener('change', sincronizarDadosManuais);
+    if (selectRscSolicitado) selectRscSolicitado.addEventListener('change', sincronizarDadosManuais);
     if (inputDataExercicio) {
-        inputDataExercicio.addEventListener('change', executarValidacoesRegras);
-        inputDataExercicio.addEventListener('input', executarValidacoesRegras);
+        inputDataExercicio.addEventListener('change', sincronizarDadosManuais);
+        inputDataExercicio.addEventListener('input', sincronizarDadosManuais);
     }
-    if (selectEstagioProbatorio) selectEstagioProbatorio.addEventListener('change', executarValidacoesRegras);
+    if (selectEstagioProbatorio) selectEstagioProbatorio.addEventListener('change', sincronizarDadosManuais);
 
+    // Geração do Parecer SEACAR usando 100% dos dados sincronizados da tela
     if (btnGerarSeacar) {
         btnGerarSeacar.addEventListener('click', () => {
             sincronizarDadosManuais();
@@ -91,6 +94,7 @@ function inicializarApp() {
         });
     }
 
+    // Geração da Portaria usando 100% dos dados sincronizados da tela
     if (btnGerarPortaria) {
         btnGerarPortaria.addEventListener('click', () => {
             sincronizarDadosManuais();
@@ -108,18 +112,27 @@ function inicializarApp() {
     carregarHistoricoTabela();
 }
 
+/**
+ * Coleta TUDO o que está na tela (digitado ou lido pelo PDF) e atualiza o objeto global
+ */
 function sincronizarDadosManuais() {
     if (!window.dadosExtraidosPDF) {
         window.dadosExtraidosPDF = {};
     }
     
-    // Atualiza o objeto global dinamicamente com os valores atuais dos campos
+    // Força a leitura exata do que o usuário tem na tela
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
     window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
     window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataParecer ? inputDataParecer.value : '';
+    window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : ''; // Valor da CRSC selecionada
+
+    if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
+    if (selectRscSolicitado) window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
+    if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
+    if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
 
     executarValidacoesRegras();
 }
@@ -133,6 +146,7 @@ function limparFormularioProcesso(limparArquivoInput = true) {
     if (inputNumeroProcesso) inputNumeroProcesso.value = '';
     if (inputPontuacao) inputPontuacao.value = '';
     if (inputDataParecer) inputDataParecer.value = '';
+    if (inputCRSC) inputCRSC.selectedIndex = 0;
 
     if (selectIQAtual) selectIQAtual.selectedIndex = 0;
     if (selectRscSolicitado) selectRscSolicitado.selectedIndex = 0;
@@ -176,6 +190,7 @@ async function processarArquivoPDF(e) {
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
             if (inputDataParecer) inputDataParecer.value = dados.dataExercicioComissao || '';
+            if (inputCRSC && dados.unidadeCRSC) inputCRSC.value = dados.unidadeCRSC;
 
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
@@ -189,12 +204,7 @@ async function processarArquivoPDF(e) {
                 statusLeitura.innerHTML = `✅ <strong>Análise Concluída!</strong> Confira e/ou ajuste os dados abaixo se necessário.`;
             }
             
-            if (secaoDadosParecer) secaoDadosParecer.classList.remove('d-none');
-            if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
-            if (acoesGeracao) acoesGeracao.classList.remove('d-none');
-            
-            executarValidacoesRegras();
-            salvarProcessoNoHistorico(window.dadosExtraidosPDF);
+            exibirPaineisEValidar();
         } else {
             throw new Error("A função parseParecerCRSC não está disponível.");
         }
@@ -202,13 +212,21 @@ async function processarArquivoPDF(e) {
         console.error("Erro no processamento do PDF:", err);
         if (statusLeitura) {
             statusLeitura.classList.replace('alert-secondary', 'alert-danger');
-            statusLeitura.textContent = `❌ Erro na leitura do arquivo: ${err.message}. Você pode preencher os dados manualmente no painel abaixo.`;
+            statusLeitura.innerHTML = `⚠️ <strong>Não foi possível ler o PDF automaticamente.</strong> Preencha os campos abaixo manualmente para gerar a portaria/parecer.`;
         }
-        // Exibe o painel para preenchimento manual caso ocorra erro grave de OCR
-        if (secaoDadosParecer) secaoDadosParecer.classList.remove('d-none');
-        if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
-        if (acoesGeracao) acoesGeracao.classList.remove('d-none');
+        
+        // Em caso de falha na leitura do PDF, libera os painéis para digitação manual total
+        exibirPaineisEValidar();
     }
+}
+
+function exibirPaineisEValidar() {
+    if (secaoDadosParecer) secaoDadosParecer.classList.remove('d-none');
+    if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
+    if (acoesGeracao) acoesGeracao.classList.remove('d-none');
+    
+    sincronizarDadosManuais();
+    salvarProcessoNoHistorico(window.dadosExtraidosPDF);
 }
 
 function executarValidacoesRegras() {
@@ -281,13 +299,6 @@ function executarValidacoesRegras() {
         if (alertaRetornoComissao) alertaRetornoComissao.classList.add('d-none');
         if (btnGerarPortaria) btnGerarPortaria.disabled = false;
         if (window.dadosExtraidosPDF) window.dadosExtraidosPDF.resultado = "DEFERIDO";
-    }
-
-    if (window.dadosExtraidosPDF) {
-        if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
-        if (selectRscSolicitado) window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
-        if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
-        if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
     }
 }
 
