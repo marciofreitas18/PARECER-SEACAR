@@ -52,7 +52,7 @@ function inicializarApp() {
     carregarHistoricoTabela();
 }
 
-// Handler de Leitura do PDF
+// Handler do envio de PDF
 async function processarArquivoPDF(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -66,17 +66,23 @@ async function processarArquivoPDF(e) {
             const dados = await window.parseParecerCRSC(file);
             window.dadosExtraidosPDF = { ...window.dadosExtraidosPDF, ...dados };
             
-            // Preenche os campos da interface se capturados do PDF
+            // 1. Pré-seleciona os menus com base no PDF (mas permite que você altere)
             if (dados.iqAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
-            if (dados.dataExercicio) inputDataExercicio.value = dados.dataExercicio;
+
+            // 2. Se o PDF trouxe a data apurada pela comissão, guardamos para comparação
+            // O campo inputDataExercicio fica livre para você digitar a data oficial do assentamento
+            if (dados.dataExercicioComissao && !inputDataExercicio.value) {
+                inputDataExercicio.value = dados.dataExercicioComissao;
+            }
 
             statusLeitura.classList.replace('alert-secondary', 'alert-success');
-            statusLeitura.textContent = "✅ Leitura concluída com sucesso! Verifique as validações abaixo.";
+            statusLeitura.textContent = "✅ Leitura concluída com sucesso! Verifique ou digite os dados nos campos abaixo.";
             
             secaoValidacoes.classList.remove('d-none');
             acoesGeracao.classList.remove('d-none');
             
+            // Executa a primeira validação com os dados extraídos/digitados
             executarValidacoesRegras();
             salvarProcessoNoHistorico(window.dadosExtraidosPDF);
         } else {
