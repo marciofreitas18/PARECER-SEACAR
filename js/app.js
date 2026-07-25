@@ -12,7 +12,8 @@ const REQUISITOS_DECRETO_13048 = {
 window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
 // Mapeamento Elementos do DOM
-let pdfCRSCInput, statusLeitura, secaoValidacoes, acoesGeracao;
+let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
+let inputNomeServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
@@ -20,9 +21,18 @@ let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabe
 document.addEventListener('DOMContentLoaded', () => {
     pdfCRSCInput = document.getElementById('pdfCRSCInput');
     statusLeitura = document.getElementById('statusLeitura');
+    secaoDadosParecer = document.getElementById('secaoDadosParecer');
     secaoValidacoes = document.getElementById('secaoValidacoes');
     acoesGeracao = document.getElementById('acoesGeracao');
 
+    // Campos de Edição Manual dos Dados do Parecer
+    inputNomeServidor = document.getElementById('inputNomeServidor');
+    inputSiape = document.getElementById('inputSiape');
+    inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
+    inputPontuacao = document.getElementById('inputPontuacao');
+    inputDataParecer = document.getElementById('inputDataParecer');
+
+    // Campos de Validação
     selectIQAtual = document.getElementById('selectIQAtual');
     selectRscSolicitado = document.getElementById('selectRscSolicitado');
     inputDataExercicio = document.getElementById('inputDataExercicio');
@@ -44,6 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
 function inicializarApp() {
     if (pdfCRSCInput) pdfCRSCInput.addEventListener('change', processarArquivoPDF);
     
+    // Escuta alterações nos campos editáveis para atualizar o estado global
+    const camposManuais = [inputNomeServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer];
+    camposManuais.forEach(campo => {
+        if (campo) {
+            campo.addEventListener('input', sincronizarDadosManuais);
+            campo.addEventListener('change', sincronizarDadosManuais);
+        }
+    });
+
     if (selectIQAtual) selectIQAtual.addEventListener('change', executarValidacoesRegras);
     if (selectRscSolicitado) selectRscSolicitado.addEventListener('change', executarValidacoesRegras);
     if (inputDataExercicio) {
@@ -54,20 +73,22 @@ function inicializarApp() {
 
     if (btnGerarSeacar) {
         btnGerarSeacar.addEventListener('click', () => {
+            sincronizarDadosManuais();
             if (typeof window.gerarParecerSEACAR === 'function') {
                 window.gerarParecerSEACAR(window.dadosExtraidosPDF);
             } else {
-                alert("A função de geração do Parecer SEACAR ainda não foi carregada no sistema.");
+                alert("Função de geração do Parecer SEACAR não carregada.");
             }
         });
     }
 
     if (btnGerarPortaria) {
         btnGerarPortaria.addEventListener('click', () => {
+            sincronizarDadosManuais();
             if (typeof window.gerarMinutaPortaria === 'function') {
                 window.gerarMinutaPortaria(window.dadosExtraidosPDF);
             } else {
-                alert("A função de geração da Minuta da Portaria ainda não foi carregada no sistema.");
+                alert("Função de geração da Minuta da Portaria não carregada.");
             }
         });
     }
@@ -78,17 +99,33 @@ function inicializarApp() {
     carregarHistoricoTabela();
 }
 
-/**
- * Limpa os campos de entrada do formulário sem resetar o input de arquivo caso seja chamada no upload
- */
+function sincronizarDadosManuais() {
+    if (!window.dadosExtraidosPDF) window.dadosExtraidosPDF = {};
+    
+    window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value : '';
+    window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value : '';
+    window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value : '';
+    window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
+    window.dadosExtraidosPDF.dataExercicioComissao = inputDataParecer ? inputDataParecer.value : '';
+
+    executarValidacoesRegras();
+}
+
 function limparFormularioProcesso(limparArquivoInput = true) {
     if (limparArquivoInput && pdfCRSCInput) pdfCRSCInput.value = '';
+
+    if (inputNomeServidor) inputNomeServidor.value = '';
+    if (inputSiape) inputSiape.value = '';
+    if (inputNumeroProcesso) inputNumeroProcesso.value = '';
+    if (inputPontuacao) inputPontuacao.value = '';
+    if (inputDataParecer) inputDataParecer.value = '';
 
     if (selectIQAtual) selectIQAtual.selectedIndex = 0;
     if (selectRscSolicitado) selectRscSolicitado.selectedIndex = 0;
     if (selectEstagioProbatorio) selectEstagioProbatorio.selectedIndex = 0;
     if (inputDataExercicio) inputDataExercicio.value = '';
 
+    if (secaoDadosParecer) secaoDadosParecer.classList.add('d-none');
     if (secaoValidacoes) secaoValidacoes.classList.add('d-none');
     if (acoesGeracao) acoesGeracao.classList.add('d-none');
     if (statusLeitura) statusLeitura.classList.add('d-none');
@@ -105,7 +142,6 @@ async function processarArquivoPDF(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Reseta o formulário SEM apagar o arquivo selecionado no input
     limparFormularioProcesso(false);
 
     if (statusLeitura) {
@@ -117,8 +153,15 @@ async function processarArquivoPDF(e) {
     try {
         if (typeof window.parseParecerCRSC === 'function') {
             const dados = await window.parseParecerCRSC(file);
-            window.dadosExtraidosPDF = { ...window.dadosExtraidosPDF, ...dados };
+            window.dadosExtraidosPDF = { ...dados };
             
+            // Preenche os campos editáveis
+            if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
+            if (inputSiape) inputSiape.value = dados.siape || '';
+            if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
+            if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
+            if (inputDataParecer) inputDataParecer.value = dados.dataExercicioComissao || '';
+
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
 
@@ -128,9 +171,10 @@ async function processarArquivoPDF(e) {
 
             if (statusLeitura) {
                 statusLeitura.classList.replace('alert-secondary', 'alert-success');
-                statusLeitura.innerHTML = `✅ <strong>Análise Concluída!</strong> Servidor: <u>${dados.nomeServidor || 'Não identificado'}</u> | Processo: <u>${dados.numeroProcesso || 'Não identificado'}</u>`;
+                statusLeitura.innerHTML = `✅ <strong>Análise Concluída!</strong> Confira e/ou ajuste os dados abaixo se necessário.`;
             }
             
+            if (secaoDadosParecer) secaoDadosParecer.classList.remove('d-none');
             if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
             if (acoesGeracao) acoesGeracao.classList.remove('d-none');
             
@@ -143,8 +187,12 @@ async function processarArquivoPDF(e) {
         console.error("Erro no processamento do PDF:", err);
         if (statusLeitura) {
             statusLeitura.classList.replace('alert-secondary', 'alert-danger');
-            statusLeitura.textContent = `❌ Erro na leitura do arquivo: ${err.message}`;
+            statusLeitura.textContent = `❌ Erro na leitura do arquivo: ${err.message}. Você pode preencher os dados manualmente no painel abaixo.`;
         }
+        // Exibe o painel para preenchimento manual caso ocorra erro grave de OCR
+        if (secaoDadosParecer) secaoDadosParecer.classList.remove('d-none');
+        if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
+        if (acoesGeracao) acoesGeracao.classList.remove('d-none');
     }
 }
 
@@ -173,7 +221,7 @@ function executarValidacoesRegras() {
     }
 
     const dataDigitadaStr = inputDataExercicio ? inputDataExercicio.value : "";
-    const dataCRSCStr = window.dadosExtraidosPDF ? (window.dadosExtraidosPDF.dataExercicioComissao || window.dadosExtraidosPDF.dataExercicio) : "";
+    const dataCRSCStr = inputDataParecer ? inputDataParecer.value : "";
 
     if (dataDigitadaStr && dataCRSCStr) {
         const dataDigitada = parseDataParaObjeto(dataDigitadaStr);
@@ -183,7 +231,7 @@ function executarValidacoesRegras() {
             if (dataDigitada > dataCRSC) {
                 requerDevolucaoCRSC = true;
                 if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = `⚠️ Data digitada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}).`;
+                    msgDivergenciaData.innerHTML = `⚠️ Data digitada (${formatarDataBr(dataDigitadaStr)}) é posterior à informada pela CRSC (${formatarDataBr(dataCRSCStr)}).`;
                     msgDivergenciaData.classList.remove('d-none');
                 }
                 impedimentos.push("Data de exercício posterior à informada pela CRSC.");
@@ -249,7 +297,7 @@ function formatarDataBr(dataIso) {
 }
 
 function salvarProcessoNoHistorico(dados) {
-    if (!dados || !dados.numeroProcesso) return;
+    if (!dados || (!dados.numeroProcesso && !dados.nomeServidor)) return;
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     const item = {
         dataHora: new Date().toLocaleString('pt-BR'),
