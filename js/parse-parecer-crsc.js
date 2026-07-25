@@ -1,5 +1,6 @@
 /**
  * Extrator de dados calibrado para o Parecer CRSC-PCCTAE da UFFS
+ * Integrado com o app.js para validações automáticas do Decreto nº 13.048/2026
  */
 async function extrairDadosParecerCRSC(file) {
     const arrayBuffer = await file.arrayBuffer();
@@ -25,6 +26,28 @@ async function extrairDadosParecerCRSC(file) {
     const pontos = extrairRegEx(textoLimpo, /Pontuação obtida[:;]?\s*(\d+)/i) || 
                    extrairRegEx(textoLimpo, /(?:Pontuação|Pontos|Total)[:;]?\s*([\d,\.]+)/i) || "0";
 
+    // Extração e normalização do IQ (remove o caractere % se houver para retornar número puro)
+    const rawIQ = extrairRegEx(textoLimpo, /(?:IQ|Incentivo à Qualificação)[:;]?\s*(\d+)%?/i) || 
+                  extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+)%?/i) || "52";
+
+    // Extração e normalização do Nível RSC (Garante formato padrão ex: RSC-V)
+    let rawNivel = extrairRegEx(textoLimpo, /Nível de RSC requerido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Data|$))/i) || 
+                   extrairRegEx(textoLimpo, /(RSC-PCCTAE-[I|V|X]+|RSC-[I|V|X]+)/i) || "RSC-V";
+    
+    // Formata nivelSolicitado para compatibilidade (ex: "RSC-PCCTAE V" -> "RSC-V")
+    let nivelFormatado = rawNivel.replace(/RSC-PCCTAE\s*/i, 'RSC-').replace(/\s+/g, '').toUpperCase();
+    if (!nivelFormatado.startsWith('RSC-')) nivelFormatado = 'RSC-' + nivelFormatado;
+
+    // Extração de Datas (Conversão YYYY-MM-DD para preencher o input type="date")
+    const rawDataExercicio = extrairRegEx(textoLimpo, /Data de Exercício[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || 
+                             extrairRegEx(textoLimpo, /Data de ingresso[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
+    
+    let dataExercicioIso = "";
+    if (rawDataExercicio) {
+        const partes = rawDataExercicio.split('/');
+        if (partes.length === 3) dataExercicioIso = `${partes[2]}-${partes[1]}-${partes[0]}`;
+    }
+
     const dados = {
         // Dados do Processo e Servidor
         numeroProcesso: extrairRegEx(textoLimpo, /Processo[:;]?\s*([\d\.\/-]+)/i) || "Não identificado",
@@ -33,18 +56,24 @@ async function extrairDadosParecerCRSC(file) {
         cargo: extrairRegEx(textoLimpo, /Cargo[:;]?\s*([^\n\r;]+?)(?=\s*(?:Lotação|Data|$))/i) || "Assistente em Administração",
         lotacao: extrairRegEx(textoLimpo, /Lotação[:;]?\s*([^\n\r;]+?)(?=\s*(?:Data|$))/i) || "UFFS",
         
-        // Dados do RSC
-        nivelRsc: extrairRegEx(textoLimpo, /Nível de RSC requerido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Data|$))/i) || "RSC-PCCTAE V",
-        nivelConcedido: extrairRegEx(textoLimpo, /Nível concedido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Vigência|$))/i) || "RSC-PCCTAE V",
-        percentual: extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+%?)/i) || "52%",
+        // Dados do RSC e Legislação (Decreto 13.048/2026)
+        iqAtual: rawIQ,
+        nivelSolicitado: nivelFormatado,
+        nivelRsc: rawNivel,
+        nivelConcedido: rawNivel,
+        percentual: rawIQ + "%",
         
-        // Mapeia os pontos para ambas as chaves (evita o erro undefined)
+        // Pontuação
         pontuacaoObtida: pontos,
         pontuacaoTotal: pontos,
         
-        // Datas e Resultado
+        // Datas
+        dataExercicioComissao: dataExercicioIso,
+        dataExercicio: dataExercicioIso,
         dataRequerimento: extrairRegEx(textoLimpo, /Data do requerimento[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
         dataVigencia: extrairRegEx(textoLimpo, /Vigência da Concessão a partir de[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
+        
+        // Resultado
         resultado: eFavoravel ? "DEFERIDO" : "INDEFERIDO"
     };
 
@@ -55,3 +84,7 @@ function extrairRegEx(texto, regex) {
     const match = texto.match(regex);
     return match && match[1] ? match[1].trim() : null;
 }
+
+// Mapeia a função globalmente para compatibilidade com o app.js
+window.parseParecerCRSC = extrairDadosParecerCRSC;
+window.extrairDadosParecerCRSC = extrairDadosParecerCRSC;
