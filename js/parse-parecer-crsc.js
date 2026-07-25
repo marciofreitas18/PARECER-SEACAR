@@ -15,7 +15,6 @@ async function parseParecerCRSC(file) {
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        // Concatena itens com espaço simples
         const pageText = textContent.items.map(item => item.str).join(' ');
         textoCompleto += pageText + '\n';
     }
@@ -59,8 +58,9 @@ async function parseParecerCRSC(file) {
         nomeServidor: extrairNomeServidor(textoLimpo),
         siape: extrairSiape(textoLimpo),
         cargo: extrairCargoServidor(textoLimpo),
-        lotacao: extrairLotacao(textoLimpo), // CORRIGIDO: Agora extrai e retorna a lotação
-        dataExercicioComissao: extrairDataExercicio(textoLimpo),
+        lotacao: extrairLotacao(textoLimpo),
+        dataExercicioComissao: extrairDataExercicio(textoLimpo), // Data no cargo (Para conferência/requisito)
+        dataVigenciaCRSC: extrairDataParecer(textoLimpo),       // Data do parecer (Para vigência financeira)
         nivelSolicitado: extrairNivelRSC(textoLimpo),
         pontuacaoObtida: extrairPontos(textoLimpo),
         numeroProcesso: extrairProcesso(textoLimpo)
@@ -110,7 +110,7 @@ function extrairCargoServidor(texto) {
 }
 
 /**
- * NOVA FUNÇÃO: Busca pela Lotação do servidor
+ * Busca pela Lotação do servidor
  */
 function extrairLotacao(texto) {
     const regexes = [
@@ -144,16 +144,35 @@ function extrairSiape(texto) {
 }
 
 /**
- * Busca pela data de exercício: "Data de início do exercício no cargo atual: DD/MM/AAAA"
+ * Busca estritamente pela data de exercício no cargo atual
  */
 function extrairDataExercicio(texto) {
-    const reg = /(?:Data\s+de\s+início\s+do\s+exercício\s+no\s+cargo\s+atual|Data\s+do\s+requerimento|Vigência\s+da\s+Concessão\s+a\s+partir\s+de|Exercício)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i;
+    const reg = /(?:Data\s+de\s+início\s+do\s+exercício\s+no\s+cargo\s+atual|Início\s+no\s+cargo|Exercício\s+no\s+cargo)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i;
     const match = texto.match(reg);
     if (match && match[1]) {
         const partes = match[1].replace(/[\.-]/g, '/').split('/');
         if (partes.length === 3) {
-            // Formato para HTML input date: YYYY-MM-DD
             return `${partes[2]}-${partes[1]}-${partes[0]}`;
+        }
+    }
+    return '';
+}
+
+/**
+ * Busca pela Data do Parecer / Requerimento / Emissão
+ */
+function extrairDataParecer(texto) {
+    const regexes = [
+        /(?:Data\s+do\s+Parecer|Data\s+do\s+requerimento|Vigência\s+da\s+Concessão|Chapecó)[\s,:-]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/
+    ];
+    for (const reg of regexes) {
+        const match = texto.match(reg);
+        if (match && match[1]) {
+            const partes = match[1].replace(/[\.-]/g, '/').split('/');
+            if (partes.length === 3) {
+                return `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
         }
     }
     return '';
