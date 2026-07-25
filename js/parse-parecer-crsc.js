@@ -1,6 +1,6 @@
 /**
- * Extrator de dados calibrado para o Parecer CRSC-PCCTAE da UFFS
- * Integrado com o app.js para validações automáticas do Decreto nº 13.048/2026
+ * Extrator de dados calibrado para o Parecer da Comissão (CRSC/UFFS)
+ * Identifica as 7 CRSCs oficiais: Cerro Largo, Chapecó, Erechim, Laranjeiras do Sul, Realeza, Reitoria e Passo Fundo
  */
 async function extrairDadosParecerCRSC(file) {
     const arrayBuffer = await file.arrayBuffer();
@@ -15,36 +15,64 @@ async function extrairDadosParecerCRSC(file) {
         textoCompleto += pageText + "\n";
     }
 
-    // Normaliza espaços para facilitar a busca por RegEx
+    // Normaliza espaços para facilitar a busca
     const textoLimpo = textoCompleto.replace(/\s+/g, ' ');
 
-    // Identifica se o parecer é Favorável (DEFERIDO)
+    // 1. Mapeamento e Identificação Estrita da CRSC Responsável
+    const comissoesValidas = [
+        "Cerro Largo",
+        "Chapecó",
+        "Erechim",
+        "Laranjeiras do Sul",
+        "Realeza",
+        "Reitoria",
+        "Passo Fundo"
+    ];
+
+    let comissaoIdentificada = "Passo Fundo"; // Fallback padrão caso não encontre no PDF
+
+    for (const comissao of comissoesValidas) {
+        // Busca variações como "CRSC Campus Cerro Largo", "CRSC Cerro Largo", "CRSC Reitoria", etc.
+        const regexComissao = new RegExp(`CRSC(?:\\s*Campus|\\s*da\\s*Unidade|\\s*do\\s*Campus)?\\s*${comissao}`, "i");
+        if (regexComissao.test(textoLimpo)) {
+            comissaoIdentificada = comissao;
+            break;
+        }
+    }
+
+    // 2. Identifica se o parecer é Favorável (DEFERIDO)
     const eFavoravel = /Parecer[:;]?\s*Favorável/i.test(textoLimpo) || 
                        (!/Não Favorável|Desfavorável/i.test(textoLimpo) && /Favorável/i.test(textoLimpo));
 
-    // Captura da pontuação obtida no parecer
+    // 3. Captura da pontuação obtida
     const pontos = extrairRegEx(textoLimpo, /Pontuação obtida[:;]?\s*([\d\.,]+)/i) || 
                    extrairRegEx(textoLimpo, /Total de pontos aceitos[:;]?\s*([\d\.,]+)/i) || 
+                   extrairRegEx(textoLimpo, /pontuação homologada de\s*([\d\.,]+)/i) ||
                    extrairRegEx(textoLimpo, /(?:Pontuação|Pontos|Total)[:;]?\s*([\d\.,]+)/i) || "0";
 
-    // Extração e normalização do IQ (número puro para o selectIQAtual)
+    // 4. Extração e normalização do IQ (porcentagem pura)
     const rawIQ = extrairRegEx(textoLimpo, /Percentual correspondente[:;]?\s*(\d+)%?/i) || 
                   extrairRegEx(textoLimpo, /(?:IQ|Incentivo à Qualificação)[:;]?\s*(\d+)%?/i) || "52";
 
-    // Extração e normalização do Nível RSC (Garante formato padrão ex: RSC-V ou RSC-PCCTAE-V)
+    // 5. Extração e normalização do Nível RSC
     let rawNivel = extrairRegEx(textoLimpo, /Nível de RSC requerido[:;]?\s*([^;]+?)(?=\s*(?:Percentual|Data|$))/i) || 
-                   extrairRegEx(textoLimpo, /(RSC-PCCTAE-[I|V|X]+|RSC-[I|V|X]+)/i) || "RSC-V";
+                   extrairRegEx(textoLimpo, /(RSC-PCCTAE-[I|V|X]+|RSC-[I|V|X]+|Nível\s*[I|V|X]+)/i) || "RSC-V";
     
-    // Formata nivelSolicitado para compatibilidade (ex: "RSC-PCCTAE V" -> "RSC-V")
-    let nivelFormatado = rawNivel.replace(/RSC-PCCTAE\s*/i, 'RSC-').replace(/\s+/g, '').toUpperCase();
-    if (!nivelFormatado.startsWith('RSC-')) nivelFormatado = 'RSC-' + nivelFormatado;
+    let nivelApenasRomano = extrairRegEx(rawNivel, /([I|V|X]+)/i) || "V";
+    let nivelFormatado = `RSC-${nivelApenasRomano}`;
 
-    // CAPTURA DA DATA DE EXERCÍCIO (Inclui o rótulo completo da UFFS / SIPAC)
+    // 6. Datas do Parecer da Comissão
     const rawDataExercicio = extrairRegEx(textoLimpo, /Data de início do exercício no cargo atual[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || 
                              extrairRegEx(textoLimpo, /Data de Exercício[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || 
                              extrairRegEx(textoLimpo, /Data de ingresso[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
-    
-    // Conversão de DD/MM/AAAA para YYYY-MM-DD para preenchimento e comparação exata
+
+    const rawDataDecisao = extrairRegEx(textoLimpo, /exarada em\s*(\d{2}\/\d{2}\/\d{4})/i) ||
+                           extrairRegEx(textoLimpo, /Data do Parecer[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
+
+    const rawDataVigencia = extrairRegEx(textoLimpo, /a partir de\s*\[?(\d{2}\/\d{2}\/\d{4})\]?/i) ||
+                            extrairRegEx(textoLimpo, /Vigência da Concessão a partir de[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "";
+
+    // Converte Data de Exercício para YYYY-MM-DD
     let dataExercicioIso = "";
     if (rawDataExercicio) {
         const partes = rawDataExercicio.split('/');
@@ -54,31 +82,27 @@ async function extrairDadosParecerCRSC(file) {
     }
 
     const dados = {
-        // Dados do Processo e Servidor
-        numeroProcesso: extrairRegEx(textoLimpo, /Processo[:;]?\s*([\d\.\/-]+)/i) || "Não identificado",
-        nomeServidor: extrairRegEx(textoLimpo, /Servidor\(a\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|$))/i) || "Servidor Não Identificado",
-        siape: extrairRegEx(textoLimpo, /(?:Matrícula\s*)?SIAPE[:;]?\s*(\d+)/i) || "Não identificado",
-        cargo: extrairRegEx(textoLimpo, /Cargo[:;]?\s*([^\n\r;]+?)(?=\s*(?:Lotação|Data|$))/i) || "Assistente em Administração",
-        lotacao: extrairRegEx(textoLimpo, /Lotação[:;]?\s*([^\n\r;]+?)(?=\s*(?:Data|$))/i) || "UFFS",
+        numeroProcesso: extrairRegEx(textoLimpo, /Processo(?:\s*SIPAC)?\s*Nº[:;]?\s*([\d\.\/-]+)/i) || "Não identificado",
+        nomeServidor: extrairRegEx(textoLimpo, /INTERESSADO\(A\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:MATRÍCULA|SIAPE|CARGO|LOTAÇÃO|$))/i) || 
+                      extrairRegEx(textoLimpo, /Servidor\(a\)[:;]?\s*([A-Za-zÀ-ÿ\s]+?)(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|$))/i) || "Servidor Não Identificado",
+        siape: extrairRegEx(textoLimpo, /(?:MATRÍCULA\s*)?SIAPE[:;]?\s*(\d+)/i) || "Não identificado",
+        cargo: extrairRegEx(textoLimpo, /CARGO[:;]?\s*([^\n\r;]+?)(?=\s*(?:LOTAÇÃO|Lotação|Data|$))/i) || "Assistente em Administração",
+        lotacao: extrairRegEx(textoLimpo, /LOTAÇÃO[:;]?\s*([^\n\r;]+?)(?=\s*(?:NÍVEL|Nível|Data|$))/i) || "UFFS",
         
-        // Dados do RSC e Legislação (Decreto 13.048/2026)
+        // Comissão Unidade/Campus (Cerro Largo, Chapecó, Erechim, Laranjeiras do Sul, Realeza, Reitoria, Passo Fundo)
+        campusCRSC: comissaoIdentificada,
+        dataDecisaoCRSC: rawDataDecisao,
+        
         iqAtual: rawIQ,
         nivelSolicitado: nivelFormatado,
-        nivelRsc: rawNivel,
-        nivelConcedido: rawNivel,
+        nivelRscRomano: nivelApenasRomano,
         percentual: rawIQ + "%",
-        
-        // Pontuação
         pontuacaoObtida: pontos,
-        pontuacaoTotal: pontos,
         
-        // Datas (A chave dataExercicioComissao é utilizada pelo app.js)
         dataExercicioComissao: dataExercicioIso,
         dataExercicio: dataExercicioIso,
         dataRequerimento: extrairRegEx(textoLimpo, /Data do requerimento[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
-        dataVigencia: extrairRegEx(textoLimpo, /Vigência da Concessão a partir de[:;]?\s*(\d{2}\/\d{2}\/\d{4})/i) || "",
-        
-        // Resultado do Parecer da Comissão
+        dataVigencia: rawDataVigencia,
         resultado: eFavoravel ? "DEFERIDO" : "INDEFERIDO"
     };
 
@@ -90,6 +114,5 @@ function extrairRegEx(texto, regex) {
     return match && match[1] ? match[1].trim() : null;
 }
 
-// Mapeia a função globalmente para compatibilidade com o app.js
 window.parseParecerCRSC = extrairDadosParecerCRSC;
 window.extrairDadosParecerCRSC = extrairDadosParecerCRSC;
