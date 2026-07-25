@@ -28,7 +28,7 @@ function gerarParecerSEACAR(dados) {
     <body>
         <div class="header">
             <h2>UNIVERSIDADE FEDERAL DA FRONTEIRA SUL - UFFS</h2>
-            <h3>SECRETARIA ESPECIAL DE ADMINISTRAÇÃO EM CARREIRA - SEACAR</h3>
+            <h3>SERVIÇO ESPECIAL DE ACOMPANHAMENTO DA CARREIRA - SEACAR</h3>
             <h4>PARECER TÉCNICO DE ANÁLISE DE RSC</h4>
         </div>
 
