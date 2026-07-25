@@ -1,6 +1,6 @@
 /**
  * Gerador de Minuta de Portaria PROGESP (.doc)
- * Formatação oficial com numeração e destaque em artigos (Art. 1º, Art. 2º)
+ * Atualizado: Termo RESOLVE em linha separada e sem recuo inicial (text-indent: 0cm)
  */
 function gerarMinutaPortaria(dados) {
     if (!dados || !dados.nomeServidor) {
@@ -26,7 +26,7 @@ function gerarMinutaPortaria(dados) {
     
     // Tratamento e limpeza de dados
     const processo = dados.numeroProcesso || '23205.XXXXXX/2026-XX';
-    const servidor = dados.nomeServidor ? dados.nomeServidor.toUpperCase() : 'XXXXXXXXXXXXXXXX';
+    const servidor = dados.nomeServidor ? dados.nomeServidor.toUpperCase() : 'SERVIDOREXEMPLO';
     const siape = dados.siape || 'XXXXXXX';
     const cargo = dados.cargo || 'XXXXXXXXXXX';
     const lotacao = dados.lotacao || 'XXXXXXXXXXXXX';
@@ -73,8 +73,15 @@ function gerarMinutaPortaria(dados) {
                 text-indent: 0cm; 
                 margin-bottom: 15px; 
             }
+            .termo-resolve {
+                text-indent: 0cm;
+                text-align: center;
+                font-weight: bold;
+                margin-top: 15px;
+                margin-bottom: 15px;
+            }
             .artigo { 
-                text-indent: 1.25cm; 
+                text-indent: 0cm; 
                 margin-top: 12px;
                 margin-bottom: 12px; 
             }
@@ -101,7 +108,11 @@ function gerarMinutaPortaria(dados) {
         </div>
 
         <p class="preambulo">
-            O(A) PRÓ-REITOR(A) DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL, no uso de suas atribuições legais e regimentais, com fundamento na Lei nº 11.091, de 12 de janeiro de 2005, no Decreto nº 13.048, de 3 de julho de 2026, e na Portaria nº 4725/GR/UFFS/2026, e considerando a decisão da ${textoCRSC}, exarada em ${dataDecisaoCRSC}, constante no Processo SIPAC nº ${processo}, <strong>RESOLVE:</strong>
+            O(A) PRÓ-REITOR(A) DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL, no uso de suas atribuições legais e regimentais, com fundamento na Lei nº 11.091, de 12 de janeiro de 2005, no Decreto nº 13.048, de 3 de julho de 2026, e na Portaria nº 4725/GR/UFFS/2026, e considerando a decisão da ${textoCRSC}, exarada em ${dataDecisaoCRSC}, constante no Processo SIPAC nº ${processo},
+        </p>
+
+        <p class="termo-resolve">
+            RESOLVE:
         </p>
 
         <p class="artigo">
@@ -124,11 +135,14 @@ function gerarMinutaPortaria(dados) {
     </html>
     `;
 
-    // Download do arquivo .doc
+    // Download do arquivo .doc com a nomenclatura exata
     const blob = new Blob([conteudoDoc], { type: 'application/msword;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Portaria_PROGESP_${processo.replace(/[\/\.]/g, '_')}.doc`;
+    
+    // Nome no padrão: Portaria Progesp xxxx - Concede RSC a [NOME DO SERVIDOR]
+    const numProcessoLimpo = processo.replace(/[\/\.]/g, '_');
+    link.download = `Portaria Progesp ${numProcessoLimpo} - Concede RSC a ${servidor}.doc`;
     
     document.body.appendChild(link);
     link.click();
