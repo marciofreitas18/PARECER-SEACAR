@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js - Leitor de PDF (Versão Atualizada) -->
+    <!-- PDF.js - Leitor de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -24,7 +24,6 @@
             <div class="card-header header-uffs p-4 rounded-top-3 bg-dark text-white">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-3">
-                        <!-- Garantido o caminho relativo e extensão PNG -->
                         <img src="./logo-uffs.png" alt="Logo UFFS" class="logo-header" style="max-height: 50px;">
                         <div>
                             <h4 class="mb-0 fw-bold">Assistente para Análise de Processos do RSC SEACAR / PROGESP</h4>
@@ -37,7 +36,7 @@
 
             <div class="card-body p-4 p-md-5">
                 
-                <!-- Bloco de Seleção de PDF -->
+                <!-- 1. Seleção de PDF -->
                 <div class="mb-4">
                     <label for="pdfCRSCInput" class="form-label fw-bold text-dark fs-5">
                         1. Selecione o Parecer da CRSC (PDF):
@@ -53,9 +52,68 @@
                     Aguardando envio do arquivo...
                 </div>
 
-                <!-- Botões de Ação/Download -->
+                <!-- 2. Seção de Validações Técnicas e Legais -->
+                <div id="secaoValidacoes" class="mt-4 p-4 bg-white rounded-3 border shadow-sm d-none">
+                    <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">2. Validações Técnicas e Legais</h5>
+                    
+                    <div class="row g-3 mb-3">
+                        <!-- IQ Atual -->
+                        <div class="col-md-6">
+                            <label for="selectIQAtual" class="form-label fw-semibold">IQ / Titulação Atual do Servidor:</label>
+                            <select id="selectIQAtual" class="form-select">
+                                <option value="">Selecione o IQ atual...</option>
+                                <option value="10">10% - Sem Ensino Fundamental Completo</option>
+                                <option value="15">15% - Ensino Fundamental Completo</option>
+                                <option value="25">25% - Ensino Médio / Técnico</option>
+                                <option value="30">30% - Graduação (Ensino Superior)</option>
+                                <option value="52">52% - Especialização (Lato Sensu)</option>
+                                <option value="75">75% - Mestrado</option>
+                            </select>
+                        </div>
+
+                        <!-- RSC Solicitado -->
+                        <div class="col-md-6">
+                            <label for="selectRscSolicitado" class="form-label fw-semibold">Nível RSC Solicitado:</label>
+                            <select id="selectRscSolicitado" class="form-select">
+                                <option value="">Selecione o RSC solicitado...</option>
+                                <option value="RSC-I">RSC-PCCTAE-I</option>
+                                <option value="RSC-II">RSC-PCCTAE-II</option>
+                                <option value="RSC-III">RSC-PCCTAE-III</option>
+                                <option value="RSC-IV">RSC-PCCTAE-IV</option>
+                                <option value="RSC-V">RSC-PCCTAE-V</option>
+                                <option value="RSC-VI">RSC-PCCTAE-VI</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Data de Exercício -->
+                        <div class="col-md-6">
+                            <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício no Cargo:</label>
+                            <input type="date" id="inputDataExercicio" class="form-control">
+                            <div id="msgDivergenciaData" class="form-text text-danger d-none fw-bold mt-1">
+                                ⚠️ Divergência com a data do parecer da comissão!
+                            </div>
+                        </div>
+
+                        <!-- Estágio Probatório -->
+                        <div class="col-md-6">
+                            <label for="selectEstagioProbatorio" class="form-label fw-semibold">Servidor em Estágio Probatório?</label>
+                            <select id="selectEstagioProbatorio" class="form-select">
+                                <option value="nao" selected>Não</option>
+                                <option value="sim">Sim (Impedimento Legal)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alertas Dinâmicos de Validação -->
+                    <div id="alertaIncompatibilidadeRSC" class="alert alert-danger d-none mt-3 mb-0" role="alert"></div>
+                    <div id="alertaRetornoComissao" class="alert alert-warning d-none mt-3 mb-0" role="alert"></div>
+                </div>
+
+                <!-- 3. Botões de Ação/Download -->
                 <div id="acoesGeracao" class="d-none mt-4 pt-3 border-top">
-                    <h5 class="text-center mb-3 fw-bold text-secondary">2. Documentos Gerados</h5>
+                    <h5 class="text-center mb-3 fw-bold text-secondary">3. Documentos Gerados</h5>
                     <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
                         <button id="btnGerarSeacar" class="btn btn-outline-success btn-lg px-4 shadow-sm">
                             📄 Baixar Parecer SEACAR (.html)
@@ -91,7 +149,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tabelaHistorico">
-                                <!-- Linhas inseridas dinamicamente via JS -->
+                                <!-- Preenchido dinamicamente -->
                             </tbody>
                         </table>
                     </div>
