@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js CDN em versão estável (carregado de forma segura) -->
+    <!-- PDF.js CDN em versão estável -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body class="bg-light">
@@ -33,18 +33,20 @@
 
             <div class="card-body p-4 p-md-5">
                 
-                <!-- 1. Seleção de PDF -->
+                <!-- 1. Seleção de PDF e Botão Reset -->
                 <div class="mb-4">
-                    <label for="pdfCRSCInput" class="form-label fw-bold text-dark fs-5">
-                        1. Selecione o Parecer da CRSC (PDF):
-                    </label>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label for="pdfCRSCInput" class="form-label fw-bold text-dark fs-5 mb-0">
+                            1. Selecione o Parecer da CRSC (PDF):
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="limparFormularioProcesso()">
+                            🔄 Novo Processo / Limpar
+                        </button>
+                    </div>
                     <input class="form-control form-control-lg border-2" type="file" id="pdfCRSCInput" accept=".pdf">
                     <div class="form-text mt-2">
                         💡 Faça o upload do documento gerado no SIPAC para realizar a extração e análise automática.
                     </div>
-                    <button type="button" class="btn btn-outline-secondary" onclick="limparFormularioProcesso()">
-    🔄 Novo Processo / Limpar
-</button>
                 </div>
 
                 <!-- Status da Leitura -->
@@ -170,7 +172,7 @@
         }
     </script>
 
-    <!-- Scripts da Aplicação (na ordem exata de dependência) -->
+    <!-- Scripts da Aplicação -->
     <script src="js/parse-parecer-crsc.js"></script>
     <script src="js/parecer-seacar-pdf.js"></script>
     <script src="js/minuta-portaria-pdf.js"></script>
