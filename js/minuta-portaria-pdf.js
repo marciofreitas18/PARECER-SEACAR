@@ -19,7 +19,7 @@ window.gerarMinutaPortaria = function(dados) {
             <br>
             <p style="text-align: center; font-weight: bold;">PORTARIA Nº XXX/PROGESP/UFFS/2026</p>
             <br>
-            <p style="text-align: justify;">O PRÓ-REITOR DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL (UFFS), no uso de suas atribuições legais...</p>
+            <p style="text-align: justify;">O(A) PRÓ-REITOR(A) DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL, no uso de suas atribuições legais e regimentais, com fundamento na Lei nº 11.091, de 12 de janeiro de 2005, no Decreto nº 13.048, de 3 de julho de 2026, e na Portaria nº 4725/GR/UFFS/2026, e considerando a decisão da <strong>${comissaoCRSC}</strong>, constante no Processo SIPAC nº <strong>${processo}</strong>,</p>
             <br>
             <p style="text-align: justify;"><strong>RESOLVE:</strong></p>
             <br>
