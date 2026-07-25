@@ -1,64 +1,174 @@
-/* Paleta Oficial UFFS */
+/* Camada institucional UFFS — adaptação visual para publicação estática no IIS */
 :root {
-  --uffs-green: #006b3f;
-  --uffs-green-dark: #004b2c;
-  --uffs-green-light: #e6f0ec;
-  --uffs-accent: #198754;
+  --uffs-green: #008037;
+  --uffs-green-dark: #00652c;
+  --uffs-green-darker: #065228;
+  --uffs-green-soft: #edf7f0;
+  --uffs-text: #16362a;
+  --uffs-muted: #62756e;
+  --uffs-border: #d8e2dc;
+  --uffs-page: #f4f6f5;
+  --uffs-shadow: 0 22px 55px rgba(7, 32, 19, .08);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: #f4f7f6;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--uffs-page) !important;
+  color: var(--uffs-text) !important;
+  font-family: "Fira Sans", "Segoe UI", Arial, sans-serif !important;
 }
 
-/* Cabeçalho do Card */
-.header-uffs {
-  background: linear-gradient(135deg, var(--uffs-green-dark) 0%, var(--uffs-green) 100%);
-  color: #ffffff;
-  border-bottom: 4px solid #00331e;
+/* Header Principal Institucional */
+.header-uffs-principal {
+  position: relative !important;
+  background: linear-gradient(120deg, var(--uffs-green) 0 42%, #0b833d 42% 54%, var(--uffs-green-darker) 54% 100%) !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  padding: 18px 24px !important;
+  color: #fff !important;
 }
 
-.logo-header {
-  max-height: 55px;
-  background-color: #ffffff;
-  padding: 5px 12px;
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+.header-uffs-principal img {
+  width: 272px !important;
+  height: auto !important;
+  max-height: 78px !important;
+  object-fit: contain !important;
 }
 
-/* Botões */
-.btn-uffs-primary {
-  background-color: var(--uffs-green);
-  color: #ffffff;
-  border: none;
-  transition: all 0.2s ease;
+.header-uffs-principal h1,
+.header-uffs-principal p {
+  color: #fff !important;
+  margin: 0;
 }
 
-.btn-uffs-primary:hover {
-  background-color: var(--uffs-green-dark);
-  color: #ffffff;
-  transform: translateY(-1px);
+.header-uffs-principal h1 {
+  font-size: 1.55rem !important;
+  letter-spacing: -.02em !important;
+  font-weight: 700;
 }
 
-.btn-outline-uffs {
-  color: var(--uffs-green);
-  border-color: var(--uffs-green);
-  font-weight: 600;
+.header-uffs-principal p {
+  opacity: .92 !important;
+  font-size: 0.88rem;
 }
 
-.btn-outline-uffs:hover {
-  background-color: var(--uffs-green);
-  color: #ffffff;
+.header-uffs-principal .divisor-vertical {
+  background: rgba(255, 255, 255, .32) !important;
+  width: 1px;
+  height: 36px;
 }
 
-/* Tabela e Badges */
-.table-dark-uffs {
-  background-color: var(--uffs-green-dark);
-  color: #ffffff;
+/* Botões do topo */
+.header-uffs-principal button {
+  border-color: rgba(255, 255, 255, .25) !important;
+  background: rgba(0, 0, 0, .12) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  transition: background 0.2s;
 }
 
-.badge-uffs {
-  background-color: var(--uffs-green-light);
-  color: var(--uffs-green-dark);
-  font-weight: 600;
+.header-uffs-principal button:hover {
+  background: rgba(0, 0, 0, .22) !important;
+}
+
+/* Área Hero / Card Principal */
+.card-hero-uffs {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .99) 0%, rgba(255, 255, 255, .97) 55%, rgba(232, 241, 236, .92) 100%), 
+              radial-gradient(circle at right center, rgba(0, 128, 55, .18), transparent 32%);
+  border: 1px solid #e2e9e4;
+  border-radius: 24px !important;
+  box-shadow: var(--uffs-shadow) !important;
+}
+
+.card-hero-uffs::after {
+  content: 'RSC-PCCTAE';
+  position: absolute;
+  right: -8px;
+  top: 18px;
+  font-size: clamp(42px, 7vw, 110px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: rgba(0, 82, 40, .055);
+  pointer-events: none;
+}
+
+/* Elementos de Destaque e Botões de Ação */
+.text-brand-uffs {
+  color: var(--uffs-green) !important;
+}
+
+.btn-brand-uffs {
+  background: var(--uffs-green) !important;
+  border-color: var(--uffs-green) !important;
+  color: #fff !important;
+}
+
+.btn-brand-uffs:hover {
+  background: var(--uffs-green-dark) !important;
+  color: #fff !important;
+}
+
+.bg-brand-soft {
+  background: var(--uffs-green-soft) !important;
+}
+
+.border-brand-soft {
+  border-color: #d0e6d7 !important;
+}
+
+.rounded-uffs {
+  border-radius: 22px !important;
+}
+
+/* Inputs, Selects e Textareas */
+input, select, textarea {
+  color: var(--uffs-text) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--uffs-green) !important;
+  box-shadow: 0 0 0 3px rgba(0, 128, 55, .18) !important;
+}
+
+input[id^="anexo-titulo-"] {
+  background: #f7fbf8 !important;
+}
+
+label[for^="anexo-titulo-"] {
+  color: var(--uffs-green) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 11px !important;
+}
+
+/* Rodapé Institucional UFFS */
+footer.footer-uffs {
+  background: var(--uffs-green) !important;
+  border-top: 0 !important;
+  color: #fff !important;
+  padding: 34px 0 !important;
+}
+
+footer.footer-uffs,
+footer.footer-uffs p,
+footer.footer-uffs span,
+footer.footer-uffs a {
+  color: #fff !important;
+}
+
+footer.footer-uffs a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .header-uffs-principal img {
+    width: 220px !important;
+  }
 }
