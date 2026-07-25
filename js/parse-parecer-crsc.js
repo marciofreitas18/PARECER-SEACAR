@@ -59,6 +59,7 @@ async function parseParecerCRSC(file) {
         nomeServidor: extrairNomeServidor(textoLimpo),
         siape: extrairSiape(textoLimpo),
         cargo: extrairCargoServidor(textoLimpo),
+        lotacao: extrairLotacao(textoLimpo), // CORRIGIDO: Agora extrai e retorna a lotação
         dataExercicioComissao: extrairDataExercicio(textoLimpo),
         nivelSolicitado: extrairNivelRSC(textoLimpo),
         pontuacaoObtida: extrairPontos(textoLimpo),
@@ -98,6 +99,23 @@ function extrairCargoServidor(texto) {
     const regexes = [
         /Cargo[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/–-]{4,50})(?=\s*(?:Lotação|Data|Matrícula|SIAPE|Nível|\n|$))/i,
         /ocupante\s+do\s+cargo\s+de[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/–-]{4,50})/i
+    ];
+    for (const reg of regexes) {
+        const m = texto.match(reg);
+        if (m && m[1]) {
+            return limpaTextoCapturado(m[1]);
+        }
+    }
+    return '';
+}
+
+/**
+ * NOVA FUNÇÃO: Busca pela Lotação do servidor
+ */
+function extrairLotacao(texto) {
+    const regexes = [
+        /Lotação[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç0-9\s\/–-]{3,80})(?=\s*(?:Data|Matrícula|SIAPE|Nível|Pontuação|Processo|\n|$))/i,
+        /Lotação\s+do\s+Servidor[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç0-9\s\/–-]{3,80})/i
     ];
     for (const reg of regexes) {
         const m = texto.match(reg);
