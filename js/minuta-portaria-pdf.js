@@ -1,150 +1,36 @@
-/**
- * Gerador de Minuta de Portaria PROGESP (.doc)
- * Nome do arquivo padronizado estritamente como: "Portaria Progesp xxxx - Concede RSC a [NOME DO SERVIDOR].doc"
- */
-function gerarMinutaPortaria(dados) {
-    if (!dados || !dados.nomeServidor) {
-        alert("Nenhum dado do processo foi carregado para gerar a Portaria.");
-        return;
-    }
-
-    // Tabela de correspondência oficial (Nível RSC -> Percentual do IQ)
-    const tabelaRscParaPercentual = {
-        'VI': '75%',
-        'V': '52%',
-        'IV': '30%',
-        'III': '25%',
-        'II': '20%',
-        'I': '15%'
-    };
-
-    const nivelRomano = (dados.nivelRscRomano || 'V').toUpperCase();
-    const percentualCorreto = tabelaRscParaPercentual[nivelRomano] || '52%';
-
-    const anoAtual = new Date().getFullYear();
-    const dataHojeExtenso = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-    
-    // Tratamento e limpeza de dados
-    const processo = dados.numeroProcesso || '23205.XXXXXX/2026-XX';
-    const servidor = dados.nomeServidor ? dados.nomeServidor.toUpperCase() : 'SERVIDOREXEMPLO';
-    const siape = dados.siape || 'XXXXXXX';
-    const cargo = dados.cargo || 'XXXXXXXXXXX';
-    const lotacao = dados.lotacao || 'XXXXXXXXXXXXX';
-    
-    const nivelExtenso = `RSC-PCCTAE, Nível ${nivelRomano}`;
-    const pontuacao = dados.pontuacaoObtida || '0,0';
-    const dataVigencia = dados.dataVigencia || dados.dataRequerimento || dataHojeExtenso;
-    
-    // Trata identificação da comissão CRSC
-    const comissaoNome = dados.campusCRSC || 'Passo Fundo';
-    const textoCRSC = comissaoNome.toLowerCase() === 'reitoria' 
-        ? 'CRSC Reitoria' 
-        : `CRSC Campus ${comissaoNome}`;
-
-    const dataDecisaoCRSC = dados.dataDecisaoCRSC || dataVigencia;
+window.gerarMinutaPortaria = function(dados) {
+    const nome = dados.nomeServidor || "NOME DO SERVIDOR";
+    const cargo = dados.cargo || "CARGO DO SERVIDOR";
+    const siape = dados.siape || "SIAPE";
+    const nivel = dados.nivelSolicitado || "RSC-PCCTAE-X";
+    const processo = dados.numeroProcesso || "23205.XXXXXX/XXXX-XX";
+    const dataExercicio = dados.dataExercicio ? formatarDataBr(dados.dataExercicio) : "XX/XX/XXXX";
 
     const conteudoDoc = `
-    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head>
-        <meta charset='utf-8'>
-        <title>Portaria PROGESP - RSC</title>
-        <style>
-            body { 
-                font-family: 'Calibri', 'Arial', sans-serif; 
-                font-size: 11pt; 
-                line-height: 1.5; 
-                text-align: justify; 
-                margin: 2.5cm;
-            }
-            .cabecalho-oficial { 
-                text-align: center; 
-                font-weight: bold; 
-                font-size: 10pt; 
-                margin-bottom: 25px; 
-            }
-            .titulo-portaria { 
-                text-align: center; 
-                font-weight: bold;
-                font-size: 11pt;
-                margin-top: 20px;
-                margin-bottom: 20px; 
-            }
-            .preambulo { 
-                text-indent: 0cm; 
-                margin-bottom: 15px; 
-            }
-            .termo-resolve {
-                text-indent: 0cm;
-                font-weight: bold;
-                margin-top: 15px;
-                margin-bottom: 15px;
-            }
-            .artigo { 
-                text-indent: 0cm; 
-                margin-top: 12px;
-                margin-bottom: 12px; 
-            }
-            .data-local { 
-                margin-top: 40px; 
-                margin-bottom: 40px;
-                text-align: left; 
-            }
-            .assinatura { 
-                text-align: center; 
-                font-weight: bold;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="cabecalho-oficial">
-            MINISTÉRIO DA EDUCAÇÃO<br>
-            UNIVERSIDADE FEDERAL DA FRONTEIRA SUL<br>
-            PRÓ-REITORIA DE GESTÃO DE PESSOAS
-        </div>
-
-        <div class="titulo-portaria">
-            PORTARIA PROGESP Nº xx/${anoAtual}, DE ${dataHojeExtenso.toUpperCase()}.
-        </div>
-
-        <p class="preambulo">
-            O(A) PRÓ-REITOR(A) DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL, no uso de suas atribuições legais e regimentais, com fundamento na Lei nº 11.091, de 12 de janeiro de 2005, no Decreto nº 13.048, de 3 de julho de 2026, e na Portaria nº 4725/GR/UFFS/2026, e considerando a decisão da ${textoCRSC}, exarada em ${dataDecisaoCRSC}, constante no Processo SIPAC nº ${processo},
-        </p>
-
-        <p class="termo-resolve">
-            RESOLVE:
-        </p>
-
-        <p class="artigo">
-            <strong>Art. 1º</strong> Conceder, a partir de ${dataVigencia}, ao(à) servidor(a) <strong>${servidor}</strong>, matrícula SIAPE nº ${siape}, ocupante do cargo de ${cargo}, lotado(a) em ${lotacao}, o Reconhecimento de Saberes e Competências (<strong>${nivelExtenso}</strong>), correspondente a <strong>${percentualCorreto}</strong> do valor do vencimento básico, com pontuação homologada de ${pontuacao} pontos.
-        </p>
-
-        <p class="artigo">
-            <strong>Art. 2º</strong> Esta Portaria entra em vigor na data de sua publicação no Boletim Oficial da UFFS.
-        </p>
-
-        <p class="data-local">
-            Chapecó-SC, ${dataHojeExtenso}.
-        </p>
-
-        <div class="assinatura">
-            <p>PRÓ-REITOR(A) DE GESTÃO DE PESSOAS<br>
-            Universidade Federal da Fronteira Sul</p>
-        </div>
-    </body>
-    </html>
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>Minuta de Portaria - RSC</title></head>
+        <body style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 3cm 2cm 2cm 3cm;">
+            <p style="text-align: center; font-weight: bold;">MINISTÉRIO DA EDUCAÇÃO<br>UNIVERSIDADE FEDERAL DA FRONTEIRA SUL (UFFS)</p>
+            <br>
+            <p style="text-align: center; font-weight: bold;">PORTARIA Nº XXX/PROGESP/UFFS/2026</p>
+            <br>
+            <p style="text-align: justify;">O PRÓ-REITOR DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL (UFFS), no uso de suas atribuições legais...</p>
+            <br>
+            <p style="text-align: justify;"><strong>RESOLVE:</strong></p>
+            <br>
+            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, referente ao Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataExercicio}</strong>.</p>
+            <br>
+            <p style="text-align: justify;"><strong>Art. 2º</strong> Esta Portaria entra em vigor na data de sua publicação.</p>
+        </body>
+        </html>
     `;
 
-    // Download do arquivo .doc com a nomenclatura exatamente no padrão solicitado
-    const blob = new Blob([conteudoDoc], { type: 'application/msword;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    
-    // Nome exato: Portaria Progesp xxxx - Concede RSC a [NOME DO SERVIDOR].doc
-    link.download = `Portaria Progesp xxxx - Concede RSC a ${servidor}.doc`;
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-window.gerarMinutaPortaria = gerarMinutaPortaria;
+    const blob = new Blob(['\ufeff' + conteudoDoc], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Minuta_Portaria_RSC_${siape}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
