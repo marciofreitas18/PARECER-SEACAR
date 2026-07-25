@@ -34,7 +34,7 @@ window.gerarMinutaPortaria = function(dados) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Minuta_Portaria_RSC_${siape}.doc`;
+    a.download = `Minuta_Portaria XXXX - Concede RSC a${nomeServidor}.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
