@@ -22,7 +22,7 @@ async function parseParecerCRSC(file) {
 
     let textoLimpo = normalizarTexto(textoCompleto);
 
-    // 2. Se não houver texto suficiente (ex: documento escaneado/imagem) -> Executa OCR
+    // 2. Se não houver texto suficiente (documento escaneado/imagem) -> Executa OCR
     if (textoLimpo.length < 40) {
         if (statusEl) {
             statusEl.className = "alert alert-warning text-center shadow-sm rounded-3";
@@ -37,7 +37,7 @@ async function parseParecerCRSC(file) {
             }
 
             const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 2.5 }); // Escala 2.5x para máxima clareza do OCR
+            const viewport = page.getViewport({ scale: 2.5 }); // Escala 2.5x para clareza no OCR
             
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -66,9 +66,10 @@ async function parseParecerCRSC(file) {
     console.log("=== TEXTO BRUTO OBTIDO DO PDF ===");
     console.log(textoLimpo);
 
-    // 3. Extração dos Dados via Expressões Regulares Flexíveis
+    // 3. Extração dos Dados Genéricos e Dinâmicos
     const dados = {
         nomeServidor: extrairNomeServidor(textoLimpo),
+        cargo: extrairCargoServidor(textoLimpo),
         siape: extrairSiape(textoLimpo),
         numeroProcesso: extrairProcesso(textoLimpo),
         nivelSolicitado: extrairNivelRSC(textoLimpo),
@@ -91,19 +92,32 @@ function normalizarTexto(texto) {
 }
 
 /**
- * Busca por nomes de servidores, incluindo padrões com 'LAUCIR' e variações de OCR
+ * Busca genérica por nomes de servidores no texto do PDF
  */
 function extrairNomeServidor(texto) {
-    // Busca direta para caso o nome do Laucir apareça com ruídos de OCR
-    const matchLaucir = texto.match(/(LAUCIR[A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,50})/i);
-    if (matchLaucir) {
-        return limpaTextoCapturado(matchLaucir[1]);
-    }
-
     const regexes = [
-        /(?:Interessado|Servidor|Nome|Avaliador|Requerente|Servidora)[\s:-]+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,50})/i,
-        /relativo\s+a(?:o|s)?\s+servidor(?:a)?\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,50})/i,
-        /parecer\s+de\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,50})/i
+        /(?:Interessado|Interessada|Servidor|Servidora|Requerente|Nome)[\s:-]+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})/i,
+        /(?:relativo\s+a(?:o|s)?\s+servidor(?:a)?)\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})/i,
+        /(?:trata-se\s+do\s+requerimento\s+do\(a\)\s+servidor\(a\))\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})/i,
+        /(?:parecer\s+de)\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})/i
+    ];
+
+    for (const reg of regexes) {
+        const m = texto.match(reg);
+        if (m && m[1]) {
+            return limpaTextoCapturado(m[1]);
+        }
+    }
+    return '';
+}
+
+/**
+ * Extrai o Cargo do Servidor (ex: Assistente em Administração, Técnico em Assuntos Educacionais, etc)
+ */
+function extrairCargoServidor(texto) {
+    const regexes = [
+        /(?:Cargo|Função)[\s:-]+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/]{4,50})/i,
+        /(?:ocupante\s+do\s+cargo\s+de)\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/]{4,50})/i
     ];
 
     for (const reg of regexes) {
@@ -116,11 +130,12 @@ function extrairNomeServidor(texto) {
 }
 
 function limpaTextoCapturado(txt) {
-    return txt.split(/(?:SIAPE|Matrícula|Processo|CPF|Cargo|Nível|UF)/i)[0].trim();
+    if (!txt) return '';
+    return txt.split(/(?:SIAPE|Matrícula|Processo|CPF|Cargo|Nível|Classe|Lotação|UF)/i)[0].trim();
 }
 
 function extrairSiape(texto) {
-    // Trata erros comuns do OCR como trocar o número 5 por S ou 0 por O
+    // Corrige trocas comuns do OCR (ex: S por 5, O por 0)
     const regex = /(?:SIAPE|S1APE|5IAPE|Matrícula|Matricula)[\s:ºn°]*([0-9OISl]{6,9})/i;
     const match = texto.match(regex);
     if (match && match[1]) {
@@ -130,7 +145,8 @@ function extrairSiape(texto) {
             .replace(/S/gi, '5')
             .replace(/l/gi, '1');
     }
-    // Fallback de 7 dígitos isolados
+    
+    // Fallback para sequência de 7 dígitos isolados
     const matchDigitos = texto.match(/\b([0-9]{7})\b/);
     return matchDigitos ? matchDigitos[1] : '';
 }
@@ -158,11 +174,11 @@ function extrairPontos(texto) {
     if (match && match[1]) {
         return match[1].replace(',', '.');
     }
-    return '0';
+    return '';
 }
 
 function extrairDataExercicio(texto) {
-    const regex = /(?:Exercício|Admissão|Ingresso)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i;
+    const regex = /(?:Exercício|Admissão|Ingresso|Data\s+de\s+Exercício)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i;
     const match = texto.match(regex);
     if (match && match[1]) {
         const partes = match[1].replace(/[\.-]/g, '/').split('/');
