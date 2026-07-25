@@ -1,6 +1,6 @@
 /**
  * Gerador de Minuta de Portaria PROGESP (.doc)
- * Atualizado com o modelo oficial da PROGESP / UFFS (Decreto nº 13.048/2026)
+ * Ajustado conforme as normas de Redação Oficial (Artigos em negrito, RESOLVE em destaque)
  */
 function gerarMinutaPortaria(dados) {
     if (!dados || !dados.nomeServidor) {
@@ -8,21 +8,39 @@ function gerarMinutaPortaria(dados) {
         return;
     }
 
-    // Formatações de Data para o Padrão do Documento
+    // Tabela de correspondência oficial (Nível RSC -> Percentual do IQ)
+    const tabelaRscParaPercentual = {
+        'VI': '75%',
+        'V': '52%',
+        'IV': '30%',
+        'III': '25%',
+        'II': '20%',
+        'I': '15%'
+    };
+
+    const nivelRomano = (dados.nivelRscRomano || 'V').toUpperCase();
+    const percentualCorreto = tabelaRscParaPercentual[nivelRomano] || '52%';
+
     const anoAtual = new Date().getFullYear();
     const dataHojeExtenso = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     
-    // Tratamento de dados extraídos com fallbacks
+    // Tratamento e limpeza de dados
     const processo = dados.numeroProcesso || '23205.XXXXXX/2026-XX';
     const servidor = dados.nomeServidor ? dados.nomeServidor.toUpperCase() : 'XXXXXXXXXXXXXXXX';
     const siape = dados.siape || 'XXXXXXX';
     const cargo = dados.cargo || 'XXXXXXXXXXX';
     const lotacao = dados.lotacao || 'XXXXXXXXXXXXX';
-    const nivelRsc = dados.nivelSolicitado || 'RSC-PCCTAE, Nível V';
-    const iqPercentual = dados.iqAtual ? `${dados.iqAtual}%` : '52%';
-    const pontuacao = dados.pontuacaoObtida || '0.0';
-    const dataVigencia = dados.dataVigencia || dados.dataRequerimento || '23/07/2026';
-    const campusCRSC = dados.campusCRSC || 'Passo Fundo';
+    
+    const nivelExtenso = `RSC-PCCTAE, Nível ${nivelRomano}`;
+    const pontuacao = dados.pontuacaoObtida || '0,0';
+    const dataVigencia = dados.dataVigencia || dados.dataRequerimento || dataHojeExtenso;
+    
+    // Trata identificação da comissão CRSC
+    const comissaoNome = dados.campusCRSC || 'Passo Fundo';
+    const textoCRSC = comissaoNome.toLowerCase() === 'reitoria' 
+        ? 'CRSC Reitoria' 
+        : `CRSC Campus ${comissaoNome}`;
+
     const dataDecisaoCRSC = dados.dataDecisaoCRSC || dataVigencia;
 
     const conteudoDoc = `
@@ -55,10 +73,10 @@ function gerarMinutaPortaria(dados) {
                 text-indent: 0cm; 
                 margin-bottom: 15px; 
             }
-            .texto-concessao { 
+            .artigo { 
                 text-indent: 1.25cm; 
-                margin-top: 15px;
-                margin-bottom: 30px; 
+                margin-top: 10px;
+                margin-bottom: 10px; 
             }
             .data-local { 
                 margin-top: 40px; 
@@ -83,11 +101,15 @@ function gerarMinutaPortaria(dados) {
         </div>
 
         <p class="preambulo">
-            O(A) PRÓ-REITOR(A) DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL, no uso de suas atribuições legais e regimentais, com fundamento na Lei nº 11.091, de 12 de janeiro de 2005, no Decreto nº 13.048, de 3 de julho de 2026, e na Portaria nº 4725/GR/UFFS/2026, e considerando a decisão da CRSC Campus ${campusCRSC}, exarada em ${dataDecisaoCRSC}, constante no Processo SIPAC nº ${processo}, resolve:
+            O(A) PRÓ-REITOR(A) DE GESTÃO DE PESSOAS DA UNIVERSIDADE FEDERAL DA FRONTEIRA SUL, no uso de suas atribuições legais e regimentais, com fundamento na Lei nº 11.091, de 12 de janeiro de 2005, no Decreto nº 13.048, de 3 de julho de 2026, e na Portaria nº 4725/GR/UFFS/2026, e considerando a decisão da ${textoCRSC}, exarada em ${dataDecisaoCRSC}, constante no Processo SIPAC nº ${processo}, <strong>RESOLVE:</strong>
         </p>
 
-        <p class="texto-concessao">
-            Conceder, a partir de <strong>${dataVigencia}</strong>, ao(à) servidor(a) <strong>${servidor}</strong>, matrícula SIAPE nº <strong>${siape}</strong>, ocupante do cargo de <strong>${cargo}</strong>, lotado(a) em <strong>${lotacao}</strong>, o Reconhecimento de Saberes e Competências (<strong>${nivelRsc}</strong>), correspondente a <strong>${iqPercentual}</strong> do valor do vencimento básico, com pontuação homologada de <strong>${pontuacao}</strong> pontos.
+        <p class="artigo">
+            <strong>Art. 1º</strong> Conceder, a partir de ${dataVigencia}, ao(à) servidor(a) <strong>${servidor}</strong>, matrícula SIAPE nº ${siape}, ocupante do cargo de ${cargo}, lotado(a) em ${lotacao}, o Reconhecimento de Saberes e Competências (<strong>${nivelExtenso}</strong>), correspondente a <strong>${percentualCorreto}</strong> do valor do vencimento básico, com pontuação homologada de ${pontuacao} pontos.
+        </p>
+
+        <p class="artigo">
+            <strong>Art. 2º</strong> Esta Portaria entra em vigor na data de sua publicação no Boletim Oficial da UFFS.
         </p>
 
         <p class="data-local">
@@ -102,19 +124,15 @@ function gerarMinutaPortaria(dados) {
     </html>
     `;
 
-    // Download do arquivo Word (.doc)
+    // Download do arquivo .doc
     const blob = new Blob([conteudoDoc], { type: 'application/msword;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    
-    // Nome limpo para o arquivo
-    const nomeArquivo = `Portaria_PROGESP_${processo.replace(/[\/\.]/g, '_')}.doc`;
-    link.download = nomeArquivo;
+    link.download = `Portaria_PROGESP_${processo.replace(/[\/\.]/g, '_')}.doc`;
     
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
-// Vincula a função ao escopo global do navegador
 window.gerarMinutaPortaria = gerarMinutaPortaria;
