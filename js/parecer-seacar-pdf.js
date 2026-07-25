@@ -7,7 +7,7 @@ function gerarParecerSEACAR(dados) {
         alert("Nenhum dado do processo foi carregado para gerar o Parecer.");
         return;
     }
-
+const unidadeOrigem = dados.unidadeCRSC || 'CRSC - Comissão de Reconhecimento de Saberes e Competências';
     const dataAtualExtenso = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     const dataHojeFormatada = new Date().toLocaleDateString('pt-BR');
 
