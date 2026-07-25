@@ -11,177 +11,205 @@ const REQUISITOS_DECRETO_13048 = {
 // Objeto global de dados do processo atual
 window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
-// Mapeamento de Elementos do DOM
-const pdfCRSCInput = document.getElementById('pdfCRSCInput');
-const statusLeitura = document.getElementById('statusLeitura');
-const secaoValidacoes = document.getElementById('secaoValidacoes');
-const acoesGeracao = document.getElementById('acoesGeracao');
+// Mapeamento Elementos do DOM
+let pdfCRSCInput, statusLeitura, secaoValidacoes, acoesGeracao;
+let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
+let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
+let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
 
-const selectIQAtual = document.getElementById('selectIQAtual');
-const selectRscSolicitado = document.getElementById('selectRscSolicitado');
-const inputDataExercicio = document.getElementById('inputDataExercicio');
-const selectEstagioProbatorio = document.getElementById('selectEstagioProbatorio');
+document.addEventListener('DOMContentLoaded', () => {
+    pdfCRSCInput = document.getElementById('pdfCRSCInput');
+    statusLeitura = document.getElementById('statusLeitura');
+    secaoValidacoes = document.getElementById('secaoValidacoes');
+    acoesGeracao = document.getElementById('acoesGeracao');
 
-const alertaIncompatibilidadeRSC = document.getElementById('alertaIncompatibilidadeRSC');
-const alertaRetornoComissao = document.getElementById('alertaRetornoComissao');
-const msgDivergenciaData = document.getElementById('msgDivergenciaData');
+    selectIQAtual = document.getElementById('selectIQAtual');
+    selectRscSolicitado = document.getElementById('selectRscSolicitado');
+    inputDataExercicio = document.getElementById('inputDataExercicio');
+    selectEstagioProbatorio = document.getElementById('selectEstagioProbatorio');
 
-const btnGerarSeacar = document.getElementById('btnGerarSeacar');
-const btnGerarPortaria = document.getElementById('btnGerarPortaria');
-const btnExportarExcel = document.getElementById('btnExportarExcel');
-const btnLimparHistorico = document.getElementById('btnLimparHistorico');
-const tabelaHistorico = document.getElementById('tabelaHistorico');
+    alertaIncompatibilidadeRSC = document.getElementById('alertaIncompatibilidadeRSC');
+    alertaRetornoComissao = document.getElementById('alertaRetornoComissao');
+    msgDivergenciaData = document.getElementById('msgDivergenciaData');
 
-// Listeners de Evento
-document.addEventListener('DOMContentLoaded', inicializarApp);
+    btnGerarSeacar = document.getElementById('btnGerarSeacar');
+    btnGerarPortaria = document.getElementById('btnGerarPortaria');
+    btnExportarExcel = document.getElementById('btnExportarExcel');
+    btnLimparHistorico = document.getElementById('btnLimparHistorico');
+    tabelaHistorico = document.getElementById('tabelaHistorico');
+
+    inicializarApp();
+});
 
 function inicializarApp() {
-    pdfCRSCInput.addEventListener('change', processarArquivoPDF);
+    if (pdfCRSCInput) pdfCRSCInput.addEventListener('change', processarArquivoPDF);
     
-    selectIQAtual.addEventListener('change', executarValidacoesRegras);
-    selectRscSolicitado.addEventListener('change', executarValidacoesRegras);
-    inputDataExercicio.addEventListener('change', executarValidacoesRegras);
-    inputDataExercicio.addEventListener('input', executarValidacoesRegras); // Atualização instantânea ao digitar
-    selectEstagioProbatorio.addEventListener('change', executarValidacoesRegras);
+    if (selectIQAtual) selectIQAtual.addEventListener('change', executarValidacoesRegras);
+    if (selectRscSolicitado) selectRscSolicitado.addEventListener('change', executarValidacoesRegras);
+    if (inputDataExercicio) {
+        inputDataExercicio.addEventListener('change', executarValidacoesRegras);
+        inputDataExercicio.addEventListener('input', executarValidacoesRegras);
+    }
+    if (selectEstagioProbatorio) selectEstagioProbatorio.addEventListener('change', executarValidacoesRegras);
 
-    btnGerarSeacar.addEventListener('click', () => window.gerarParecerSEACAR && window.gerarParecerSEACAR(window.dadosExtraidosPDF));
-    btnGerarPortaria.addEventListener('click', () => window.gerarMinutaPortaria && window.gerarMinutaPortaria(window.dadosExtraidosPDF));
+    if (btnGerarSeacar) {
+        btnGerarSeacar.addEventListener('click', () => {
+            if (typeof window.gerarParecerSEACAR === 'function') {
+                window.gerarParecerSEACAR(window.dadosExtraidosPDF);
+            } else {
+                alert("A função de geração do Parecer SEACAR ainda não foi carregada no sistema.");
+            }
+        });
+    }
+
+    if (btnGerarPortaria) {
+        btnGerarPortaria.addEventListener('click', () => {
+            if (typeof window.gerarMinutaPortaria === 'function') {
+                window.gerarMinutaPortaria(window.dadosExtraidosPDF);
+            } else {
+                alert("A função de geração da Minuta da Portaria ainda não foi carregada no sistema.");
+            }
+        });
+    }
     
-    btnExportarExcel.addEventListener('click', exportarHistoricoCSV);
-    btnLimparHistorico.addEventListener('click', limparHistoricoLocal);
+    if (btnExportarExcel) btnExportarExcel.addEventListener('click', exportarHistoricoCSV);
+    if (btnLimparHistorico) btnLimparHistorico.addEventListener('click', limparHistoricoLocal);
 
     carregarHistoricoTabela();
 }
 
-// Handler do envio de PDF
 async function processarArquivoPDF(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    statusLeitura.classList.remove('d-none', 'alert-danger', 'alert-success');
-    statusLeitura.classList.add('alert-secondary');
-    statusLeitura.textContent = "⌛ Lendo e extraindo informações do PDF...";
+    if (statusLeitura) {
+        statusLeitura.classList.remove('d-none', 'alert-danger', 'alert-success');
+        statusLeitura.classList.add('alert-secondary');
+        statusLeitura.textContent = "⌛ Lendo e extraindo informações do PDF...";
+    }
 
     try {
         if (typeof window.parseParecerCRSC === 'function') {
             const dados = await window.parseParecerCRSC(file);
             window.dadosExtraidosPDF = { ...window.dadosExtraidosPDF, ...dados };
             
-            // 1. Pré-seleciona os menus com base no PDF
-            if (dados.iqAtual) selectIQAtual.value = dados.iqAtual;
-            if (dados.nivelSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
+            if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
+            if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
 
-            // 2. Preenche a data de exercício se o campo estiver vazio
-            if (dados.dataExercicioComissao && !inputDataExercicio.value) {
+            if (dados.dataExercicioComissao && inputDataExercicio && !inputDataExercicio.value) {
                 inputDataExercicio.value = dados.dataExercicioComissao;
             }
 
-            statusLeitura.classList.replace('alert-secondary', 'alert-success');
-            statusLeitura.textContent = "✅ Leitura concluída com sucesso! Verifique ou digite os dados nos campos abaixo.";
+            if (statusLeitura) {
+                statusLeitura.classList.replace('alert-secondary', 'alert-success');
+                statusLeitura.textContent = "✅ Leitura concluída com sucesso!";
+            }
             
-            secaoValidacoes.classList.remove('d-none');
-            acoesGeracao.classList.remove('d-none');
+            if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
+            if (acoesGeracao) acoesGeracao.classList.remove('d-none');
             
             executarValidacoesRegras();
             salvarProcessoNoHistorico(window.dadosExtraidosPDF);
         } else {
-            throw new Error("Módulo parse-parecer-crsc.js não encontrado.");
+            throw new Error("A função parseParecerCRSC não está disponível. Verifique a importação do arquivo js/parse-parecer-crsc.js.");
         }
     } catch (err) {
-        console.error(err);
-        statusLeitura.classList.replace('alert-secondary', 'alert-danger');
-        statusLeitura.textContent = "❌ Erro ao ler o arquivo PDF. Certifique-se de que é um parecer válido da CRSC.";
+        console.error("Erro no processamento do PDF:", err);
+        if (statusLeitura) {
+            statusLeitura.classList.replace('alert-secondary', 'alert-danger');
+            statusLeitura.textContent = `❌ Erro: ${err.message}`;
+        }
     }
 }
 
-// Lógica de Validação Principal com Trativa Robusta de Datas
 function executarValidacoesRegras() {
     let impedimentos = [];
     let requerDevolucaoCRSC = false;
 
-    // 1. Validação Decreto 13.048/2026 (IQ vs RSC)
-    const iqVal = parseInt(selectIQAtual.value, 10);
-    const rscVal = selectRscSolicitado.value;
+    // 1. Validação IQ vs RSC
+    const iqVal = selectIQAtual ? parseInt(selectIQAtual.value, 10) : null;
+    const rscVal = selectRscSolicitado ? selectRscSolicitado.value : null;
 
     if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
         const regra = REQUISITOS_DECRETO_13048[rscVal];
-        
         if (iqVal < regra.iqExigido) {
             impedimentos.push(`Incompatibilidade com Dec. 13.048/2026: Para solicitar o ${rscVal}, exige-se IQ mínimo de ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
-            
-            alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Incompatibilidade Legal:</strong> O nível <strong>${rscVal}</strong> exige no mínimo ${regra.descricao}.`;
-            alertaIncompatibilidadeRSC.classList.remove('d-none');
-        } else {
+            if (alertaIncompatibilidadeRSC) {
+                alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Incompatibilidade Legal:</strong> O nível <strong>${rscVal}</strong> exige no mínimo ${regra.descricao}.`;
+                alertaIncompatibilidadeRSC.classList.remove('d-none');
+            }
+        } else if (alertaIncompatibilidadeRSC) {
             alertaIncompatibilidadeRSC.classList.add('d-none');
         }
     }
 
     // 2. Validação Estágio Probatório
-    if (selectEstagioProbatorio.value === 'sim') {
+    if (selectEstagioProbatorio && selectEstagioProbatorio.value === 'sim') {
         impedimentos.push("Servidor em Estágio Probatório (Impedimento legal para concessão de RSC).");
     }
 
-    // 3. Validação Data de Exercício (Tratamento e Comparação Robusta)
-    const dataDigitadaStr = inputDataExercicio.value; // YYYY-MM-DD
-    const dataCRSCStr = window.dadosExtraidosPDF.dataExercicioComissao || window.dadosExtraidosPDF.dataExercicio;
+    // 3. Validação Data de Exercício
+    const dataDigitadaStr = inputDataExercicio ? inputDataExercicio.value : "";
+    const dataCRSCStr = window.dadosExtraidosPDF ? (window.dadosExtraidosPDF.dataExercicioComissao || window.dadosExtraidosPDF.dataExercicio) : "";
 
     if (dataDigitadaStr && dataCRSCStr) {
-        // Padroniza ambas as datas para o objeto Date do JavaScript
         const dataDigitada = parseDataParaObjeto(dataDigitadaStr);
         const dataCRSC = parseDataParaObjeto(dataCRSCStr);
 
         if (dataDigitada && dataCRSC) {
-            // Comparação: Se a data digitada for posterior à data da CRSC
+            // Se Digitada > CRSC -> DEVOLUÇÃO
             if (dataDigitada > dataCRSC) {
                 requerDevolucaoCRSC = true;
-                msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>POSTERIOR</strong> à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
-                msgDivergenciaData.classList.remove('d-none');
-                
+                if (msgDivergenciaData) {
+                    msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>POSTERIOR</strong> à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
+                    msgDivergenciaData.classList.remove('d-none');
+                }
                 impedimentos.push(`Data de exercício informada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). Necessário retorno para readequação.`);
             } 
-            // Se as datas forem diferentes (mesmo que anterior)
             else if (dataDigitada.getTime() !== dataCRSC.getTime()) {
                 requerDevolucaoCRSC = true;
-                msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
-                msgDivergenciaData.classList.remove('d-none');
-                
+                if (msgDivergenciaData) {
+                    msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
+                    msgDivergenciaData.classList.remove('d-none');
+                }
                 impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
             } 
-            else {
+            else if (msgDivergenciaData) {
                 msgDivergenciaData.classList.add('d-none');
             }
         }
     }
 
-    // Atualização da Interface e Botões
+    // Atualização dos alertas na tela
     if (impedimentos.length > 0) {
-        alertaRetornoComissao.classList.remove('d-none');
-        
-        if (requerDevolucaoCRSC) {
-            alertaRetornoComissao.className = "alert alert-warning mt-3 mb-0 shadow-sm";
-            alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA À CRSC:</strong><br>- ${impedimentos.join('<br>- ')}`;
-            window.dadosExtraidosPDF.resultado = "RETORNAR À CRSC";
-        } else {
-            alertaRetornoComissao.className = "alert alert-danger mt-3 mb-0 shadow-sm";
-            alertaRetornoComissao.innerHTML = `<strong>⛔ INDEFERIDO:</strong><br>- ${impedimentos.join('<br>- ')}`;
-            window.dadosExtraidosPDF.resultado = "INDEFERIDO";
+        if (alertaRetornoComissao) {
+            alertaRetornoComissao.classList.remove('d-none');
+            if (requerDevolucaoCRSC) {
+                alertaRetornoComissao.className = "alert alert-warning mt-3 mb-0 shadow-sm";
+                alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA À CRSC:</strong><br>- ${impedimentos.join('<br>- ')}`;
+                window.dadosExtraidosPDF.resultado = "RETORNAR À CRSC";
+            } else {
+                alertaRetornoComissao.className = "alert alert-danger mt-3 mb-0 shadow-sm";
+                alertaRetornoComissao.innerHTML = `<strong>⛔ INDEFERIDO:</strong><br>- ${impedimentos.join('<br>- ')}`;
+                window.dadosExtraidosPDF.resultado = "INDEFERIDO";
+            }
         }
-        
-        btnGerarPortaria.disabled = true;
+        if (btnGerarPortaria) btnGerarPortaria.disabled = true;
     } else {
-        alertaRetornoComissao.classList.add('d-none');
-        btnGerarPortaria.disabled = false;
-        window.dadosExtraidosPDF.resultado = "DEFERIDO";
+        if (alertaRetornoComissao) alertaRetornoComissao.classList.add('d-none');
+        if (btnGerarPortaria) btnGerarPortaria.disabled = false;
+        if (window.dadosExtraidosPDF) window.dadosExtraidosPDF.resultado = "DEFERIDO";
     }
 
-    // Sincroniza dados selecionados
-    window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
-    window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
-    window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
-    window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+    // Sincronização Global
+    if (window.dadosExtraidosPDF) {
+        if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
+        if (selectRscSolicitado) window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
+        if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
+        if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+    }
 }
 
-// Auxiliar: Converte strings YYYY-MM-DD ou DD/MM/YYYY para o objeto Date
 function parseDataParaObjeto(strData) {
     if (!strData) return null;
     if (strData.includes('-')) {
@@ -195,8 +223,15 @@ function parseDataParaObjeto(strData) {
     return null;
 }
 
-// Gestão de Histórico no LocalStorage
+function formatarDataBr(dataIso) {
+    if (!dataIso) return '';
+    if (dataIso.includes('/')) return dataIso;
+    const partes = dataIso.split('-');
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
 function salvarProcessoNoHistorico(dados) {
+    if (!dados || !dados.numeroProcesso) return;
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     const item = {
         dataHora: new Date().toLocaleString('pt-BR'),
@@ -208,12 +243,17 @@ function salvarProcessoNoHistorico(dados) {
         percentual: (dados.iqAtual || '0') + '%',
         resultado: dados.resultado || 'ANALISADO'
     };
-    historico.unshift(item);
-    localStorage.setItem('historicoRSC', JSON.stringify(historico));
-    carregarHistoricoTabela();
+    
+    // Evita duplicatas consecutivas
+    if (historico.length === 0 || historico[0].processo !== item.processo) {
+        historico.unshift(item);
+        localStorage.setItem('historicoRSC', JSON.stringify(historico));
+        carregarHistoricoTabela();
+    }
 }
 
 function carregarHistoricoTabela() {
+    if (!tabelaHistorico) return;
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     tabelaHistorico.innerHTML = '';
     
