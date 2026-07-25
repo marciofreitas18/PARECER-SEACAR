@@ -100,11 +100,15 @@ function inicializarApp() {
 }
 
 function sincronizarDadosManuais() {
-    if (!window.dadosExtraidosPDF) window.dadosExtraidosPDF = {};
+    if (!window.dadosExtraidosPDF) {
+        window.dadosExtraidosPDF = {};
+    }
     
-    window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value : '';
-    window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value : '';
-    window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value : '';
+    // Atualiza o objeto global dinamicamente com os valores atuais dos campos
+    window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
+    window.dadosExtraidosPDF.cargo = inputCargo ? inputCargo.value.trim() : '';
+    window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
+    window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataParecer ? inputDataParecer.value : '';
 
