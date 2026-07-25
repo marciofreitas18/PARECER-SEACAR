@@ -163,7 +163,7 @@ function gerarParecerSEACAR(dados) {
 
         <p class="sem-recuo">
             <strong>2.3. Da Data de Exercício e Efeitos Financeiros:</strong><br>
-            A data de exercício no cargo efetivo confirmada no cadastro do servidor é <strong>${dataExercicio}</strong>. Com base no parecer emitido pela <strong>${comissaoCRSC}</strong>, a data de vigência/requerimento para fins de efeitos financeiros resta fixada em <strong>${dataVigencia}</strong>.
+            A data de exercício no cargo efetivo confirmada no cadastro do servidor é <strong>${dataExercicio}</strong>. Com base no parecer emitido pela <strong>${comissaoCRSC}</strong>, a data de vigência para fins de efeitos financeiros resta fixada em <strong>${dataVigencia}</strong>.
         </p>
         ${blocoDivergenciaData}
 
