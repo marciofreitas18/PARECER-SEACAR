@@ -130,7 +130,12 @@ function sincronizarDadosManuais() {
     window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : ''; // Valor da CRSC selecionada
 
     if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
-    if (selectRscSolicitado) window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
+    if (selectRscSolicitado) {
+        window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
+        // Trata a conversão para número romano se necessário (Ex: RSC-V -> V)
+        const valorRsc = selectRscSolicitado.value;
+        window.dadosExtraidosPDF.nivelRscRomano = valorRsc.includes('-') ? valorRsc.split('-')[1] : valorRsc;
+    }
     if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
 
@@ -267,19 +272,22 @@ function executarValidacoesRegras() {
                     msgDivergenciaData.innerHTML = `⚠️ Data digitada (${formatarDataBr(dataDigitadaStr)}) é posterior à informada pela CRSC (${formatarDataBr(dataCRSCStr)}).`;
                     msgDivergenciaData.classList.remove('d-none');
                 }
-                impedimentos.push("Data de exercício posterior à informada pela CRSC.");
+                impedimentos.push(`Data de exercício posterior à informada pela CRSC (${formatarDataBr(dataDigitadaStr)} x ${formatarDataBr(dataCRSCStr)}).`);
             } else if (dataDigitada.getTime() !== dataCRSC.getTime()) {
                 requerDevolucaoCRSC = true;
                 if (msgDivergenciaData) {
                     msgDivergenciaData.innerHTML = `⚠️ Divergência na data de exercício (${formatarDataBr(dataDigitadaStr)} x ${formatarDataBr(dataCRSCStr)}).`;
                     msgDivergenciaData.classList.remove('d-none');
                 }
-                impedimentos.push("Divergência na data de exercício.");
+                impedimentos.push(`Divergência na data de exercício (${formatarDataBr(dataDigitadaStr)} x ${formatarDataBr(dataCRSCStr)}).`);
             } else if (msgDivergenciaData) {
                 msgDivergenciaData.classList.add('d-none');
             }
         }
     }
+
+    // Registra a lista de impedimentos e o resultado para consumo no Parecer/Portaria
+    window.dadosExtraidosPDF.impedimentos = impedimentos;
 
     if (impedimentos.length > 0) {
         if (alertaRetornoComissao) {
