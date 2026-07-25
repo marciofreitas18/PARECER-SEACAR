@@ -13,7 +13,7 @@ window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
 // Mapeamento Elementos do DOM
 let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
-let inputNomeServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer;
+let inputNomeServidor, inputCargoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Campos de Edição Manual dos Dados do Parecer
     inputNomeServidor = document.getElementById('inputNomeServidor');
+    inputCargoServidor = document.getElementById('inputCargoServidor') || document.getElementById('inputCargo');
     inputSiape = document.getElementById('inputSiape');
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
     inputPontuacao = document.getElementById('inputPontuacao');
@@ -55,7 +56,15 @@ function inicializarApp() {
     if (pdfCRSCInput) pdfCRSCInput.addEventListener('change', processarArquivoPDF);
     
     // Escuta alterações nos campos editáveis para atualizar o estado global
-    const camposManuais = [inputNomeServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer];
+    const camposManuais = [
+        inputNomeServidor, 
+        inputCargoServidor, 
+        inputSiape, 
+        inputNumeroProcesso, 
+        inputPontuacao, 
+        inputDataParecer
+    ];
+
     camposManuais.forEach(campo => {
         if (campo) {
             campo.addEventListener('input', sincronizarDadosManuais);
@@ -106,7 +115,7 @@ function sincronizarDadosManuais() {
     
     // Atualiza o objeto global dinamicamente com os valores atuais dos campos
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
-    window.dadosExtraidosPDF.cargo = inputCargo ? inputCargo.value.trim() : '';
+    window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
     window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
@@ -119,6 +128,7 @@ function limparFormularioProcesso(limparArquivoInput = true) {
     if (limparArquivoInput && pdfCRSCInput) pdfCRSCInput.value = '';
 
     if (inputNomeServidor) inputNomeServidor.value = '';
+    if (inputCargoServidor) inputCargoServidor.value = '';
     if (inputSiape) inputSiape.value = '';
     if (inputNumeroProcesso) inputNumeroProcesso.value = '';
     if (inputPontuacao) inputPontuacao.value = '';
@@ -161,6 +171,7 @@ async function processarArquivoPDF(e) {
             
             // Preenche os campos editáveis
             if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
+            if (inputCargoServidor) inputCargoServidor.value = dados.cargo || '';
             if (inputSiape) inputSiape.value = dados.siape || '';
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
