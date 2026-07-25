@@ -5,6 +5,11 @@ window.gerarMinutaPortaria = function(dados) {
     const nivel = dados.nivelSolicitado || "RSC-PCCTAE-X";
     const processo = dados.numeroProcesso || "23205.XXXXXX/XXXX-XX";
     const dataExercicio = dados.dataExercicio ? formatarDataBr(dados.dataExercicio) : "XX/XX/XXXX";
+    
+    // Captura a CRSC selecionada na tela ou define o fallback padrão
+    const comissaoCRSC = (dados.unidadeCRSC && dados.unidadeCRSC.trim() !== "") 
+        ? dados.unidadeCRSC 
+        : "Comissão de Reconhecimento de Saberes e Competências (CRSC)";
 
     const conteudoDoc = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -18,7 +23,7 @@ window.gerarMinutaPortaria = function(dados) {
             <br>
             <p style="text-align: justify;"><strong>RESOLVE:</strong></p>
             <br>
-            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, referente ao Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataExercicio}</strong>.</p>
+            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, considerando o parecer favorável da <strong>${comissaoCRSC}</strong> constante no Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataExercicio}</strong>.</p>
             <br>
             <p style="text-align: justify;"><strong>Art. 2º</strong> Esta Portaria entra em vigor na data de sua publicação.</p>
         </body>
