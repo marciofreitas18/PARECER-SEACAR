@@ -3,213 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema SEACAR / PROGESP - UFFS</title>
+    <title>Assistente RSC-PCCTAE - UFFS</title>
+
+    <!-- Google Fonts para Fira Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js CDN em versão estável -->
+    <!-- PDF.js e Tesseract.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-    <!-- Tesseract.js para OCR de PDFs digitalizados/imagem -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
-<body class="bg-light">
+<body>
 
-    <div class="container py-5">
-        <div class="card shadow-lg border-0 rounded-3 mx-auto" style="max-width: 950px;">
-            
-            <!-- Cabeçalho -->
-            <div class="card-header header-uffs p-4 rounded-top-3 bg-dark text-white">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <img src="./logo-uffs.png" alt="Logo UFFS" class="logo-header" style="max-height: 50px;">
-                        <div>
-                            <h4 class="mb-0 fw-bold">Assistente para Análise de Processos do RSC SEACAR / PROGESP</h4>
-                            <small class="text-white-50">Universidade Federal da Fronteira Sul</small>
-                        </div>
+    <div class="min-h-screen">
+        <!-- Header Principal Institucional -->
+        <header class="header-uffs-principal">
+            <div class="container-fluid max-w-6xl d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="./logo-uffs.png" alt="Universidade Federal da Fronteira Sul">
+                    <div class="divisor-vertical d-none d-sm-block"></div>
+                    <div>
+                        <h1>Assistente RSC-PCCTAE</h1>
+                        <p class="mb-0">RECONHECIMENTO DE SABERES E COMPETÊNCIAS — SEACAR / PROGESP</p>
                     </div>
-                    <span class="badge bg-success px-3 py-2">RSC-PCCTAE</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm rounded-pill px-3" onclick="limparFormularioProcesso()">
+                        🔄 Novo Processo / Limpar
+                    </button>
                 </div>
             </div>
+        </header>
 
-            <div class="card-body p-4 p-md-5">
-                
-                <!-- 1. Seleção de PDF e Botão Reset -->
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label for="pdfCRSCInput" class="form-label fw-bold text-dark fs-5 mb-0">
+        <main class="container py-4 max-w-6xl">
+            <!-- Card Principal (Hero) -->
+            <div class="card card-hero-uffs border-0 p-3 p-md-4 mb-4">
+                <div class="card-body">
+                    
+                    <!-- 1. Seleção de PDF -->
+                    <div class="mb-4">
+                        <label for="pdfCRSCInput" class="form-label fw-bold text-brand-uffs fs-5 mb-2">
                             1. Selecione o Parecer da CRSC (PDF):
                         </label>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="limparFormularioProcesso()">
-                            🔄 Novo Processo / Limpar
-                        </button>
-                    </div>
-                    <input class="form-control form-control-lg border-2" type="file" id="pdfCRSCInput" accept=".pdf">
-                    <div class="form-text mt-2">
-                        💡 Faça o upload do documento. Se algum dado não for lido automaticamente, você poderá preenchê-lo no bloco abaixo.
-                    </div>
-                </div>
-
-                <!-- Status da Leitura -->
-                <div id="statusLeitura" class="alert alert-secondary text-center d-none shadow-sm rounded-3" role="alert">
-                    Aguardando envio do arquivo...
-                </div>
-
-                <!-- 2. NOVO BLOCO: Dados Extraídos do Parecer (Edição / Preenchimento Manual) -->
-                <div id="secaoDadosParecer" class="mt-4 p-4 bg-white rounded-3 border border-warning shadow-sm d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                        <h5 class="fw-bold text-dark mb-0">2. Dados do Parecer da CRSC (Conferência / Edição Manual)</h5>
-                        <span class="badge bg-warning text-dark">✍️ Editável</span>
-                    </div>
-                    <p class="small text-muted mb-3">
-                        Verifique os dados abaixo. Se o leitor automático omitiu alguma informação, preencha manualmente antes de prosseguir.
-                    </p>
-                    
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="inputNomeServidor" class="form-label fw-semibold">Nome do(a) Servidor(a):</label>
-                            <input type="text" id="inputNomeServidor" class="form-control" placeholder="Ex: Laucir Gerson Breitkreitz">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="inputSiape" class="form-label fw-semibold">SIAPE:</label>
-                            <input type="text" id="inputSiape" class="form-control" placeholder="Ex: 1234567">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="inputNumeroProcesso" class="form-label fw-semibold">Nº do Processo:</label>
-                            <input type="text" id="inputNumeroProcesso" class="form-control" placeholder="23205.XXXXXX/XXXX-XX">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="inputPontuacao" class="form-label fw-semibold">Pontuação Obtida no Parecer:</label>
-                            <input type="number" step="0.1" id="inputPontuacao" class="form-control" placeholder="Ex: 85.0">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="inputDataParecer" class="form-label fw-semibold">Data de Exercício do Parecer:</label>
-                            <input type="date" id="inputDataParecer" class="form-control">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Validações Técnicas e Legais -->
-                <div id="secaoValidacoes" class="mt-4 p-4 bg-white rounded-3 border shadow-sm d-none">
-                    <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">3. Validações Técnicas e Legais</h5>
-                    
-                    <div class="row g-3 mb-3">
-                        <!-- IQ Atual -->
-                        <div class="col-md-6">
-                            <label for="selectIQAtual" class="form-label fw-semibold">IQ / Titulação Atual do Servidor:</label>
-                            <select id="selectIQAtual" class="form-select">
-                                <option value="">Selecione o IQ atual...</option>
-                                <option value="10">10% - Sem Ensino Fundamental Completo</option>
-                                <option value="15">15% - Ensino Fundamental Completo</option>
-                                <option value="25">25% - Ensino Médio / Técnico (Requisito para RSC-IV)</option>
-                                <option value="30">30% - Graduação (Requisito para RSC-V)</option>
-                                <option value="52">52% - Especialização / Lato Sensu (Requisito para RSC-VI)</option>
-                                <option value="75">75% - Mestrado</option>
-                            </select>
-                        </div>
-
-                        <!-- RSC Solicitado -->
-                        <div class="col-md-6">
-                            <label for="selectRscSolicitado" class="form-label fw-semibold">Nível RSC Solicitado:</label>
-                            <select id="selectRscSolicitado" class="form-select">
-                                <option value="">Selecione o RSC solicitado...</option>
-                                <option value="RSC-I">RSC-PCCTAE-I</option>
-                                <option value="RSC-II">RSC-PCCTAE-II</option>
-                                <option value="RSC-III">RSC-PCCTAE-III</option>
-                                <option value="RSC-IV">RSC-PCCTAE-IV</option>
-                                <option value="RSC-V">RSC-PCCTAE-V</option>
-                                <option value="RSC-VI">RSC-PCCTAE-VI</option>
-                            </select>
+                        <input class="form-control form-control-lg rounded-3" type="file" id="pdfCRSCInput" accept=".pdf">
+                        <div class="form-text mt-2">
+                            💡 Faça o upload do arquivo. Caso algum dado não seja extraído automaticamente, preencha-o no painel abaixo.
                         </div>
                     </div>
 
-                    <div class="row g-3">
-                        <!-- Data de Exercício Informada no Processo -->
-                        <div class="col-md-6">
-                            <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício Informada na Análise:</label>
-                            <input type="date" id="inputDataExercicio" class="form-control">
-                            <div id="msgDivergenciaData" class="form-text text-danger d-none fw-bold mt-1">
-                                ⚠️ Divergência com a data do parecer da comissão!
+                    <!-- Status da Leitura -->
+                    <div id="statusLeitura" class="alert alert-secondary text-center d-none rounded-3 shadow-sm" role="alert">
+                        Aguardando arquivo...
+                    </div>
+
+                    <!-- 2. Dados Extraídos do Parecer (Conferência / Edição Manual) -->
+                    <div id="secaoDadosParecer" class="mt-4 p-4 bg-brand-soft border-brand-soft rounded-uffs border shadow-sm d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                            <h5 class="fw-bold text-brand-uffs mb-0">2. Dados do Parecer da CRSC (Conferência / Edição Manual)</h5>
+                            <span class="badge bg-white text-success border border-success">✍️ Editável</span>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label for="inputNomeServidor" class="form-label fw-semibold">Nome do(a) Servidor(a):</label>
+                                <input type="text" id="inputNomeServidor" class="form-control" placeholder="Ex: Laucir Gerson Breitkreitz">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="inputCargo" class="form-label fw-semibold">Cargo do(a) Servidor(a):</label>
+                                <input type="text" id="inputCargo" class="form-control" placeholder="Ex: Assistente em Administração">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="inputSiape" class="form-label fw-semibold">Matrícula SIAPE:</label>
+                                <input type="text" id="inputSiape" class="form-control" placeholder="Ex: 1234567">
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="inputNumeroProcesso" class="form-label fw-semibold">Nº do Processo:</label>
+                                <input type="text" id="inputNumeroProcesso" class="form-control" placeholder="23205.XXXXXX/XXXX-XX">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="inputPontuacao" class="form-label fw-semibold">Pontuação Obtida:</label>
+                                <input type="number" step="0.1" id="inputPontuacao" class="form-control" placeholder="Ex: 85.0">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="inputDataParecer" class="form-label fw-semibold">Data do Parecer / Exercício:</label>
+                                <input type="date" id="inputDataParecer" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Validações Técnicas e Legais -->
+                    <div id="secaoValidacoes" class="mt-4 p-4 bg-white rounded-uffs border border-brand-soft shadow-sm d-none">
+                        <h5 class="fw-bold text-brand-uffs mb-3 border-bottom pb-2">3. Validações Técnicas e Legais</h5>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="selectIQAtual" class="form-label fw-semibold">IQ / Titulação Atual do Servidor:</label>
+                                <select id="selectIQAtual" class="form-select">
+                                    <option value="">Selecione o IQ atual...</option>
+                                    <option value="10">10% - Sem Ensino Fundamental Completo</option>
+                                    <option value="15">15% - Ensino Fundamental Completo</option>
+                                    <option value="25">25% - Ensino Médio / Técnico (Requisito para RSC-IV)</option>
+                                    <option value="30">30% - Graduação (Requisito para RSC-V)</option>
+                                    <option value="52">52% - Especialização / Lato Sensu (Requisito para RSC-VI)</option>
+                                    <option value="75">75% - Mestrado</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="selectRscSolicitado" class="form-label fw-semibold">Nível RSC Solicitado:</label>
+                                <select id="selectRscSolicitado" class="form-select">
+                                    <option value="">Selecione o RSC solicitado...</option>
+                                    <option value="RSC-I">RSC-PCCTAE-I</option>
+                                    <option value="RSC-II">RSC-PCCTAE-II</option>
+                                    <option value="RSC-III">RSC-PCCTAE-III</option>
+                                    <option value="RSC-IV">RSC-PCCTAE-IV</option>
+                                    <option value="RSC-V">RSC-PCCTAE-V</option>
+                                    <option value="RSC-VI">RSC-PCCTAE-VI</option>
+                                </select>
                             </div>
                         </div>
 
-                        <!-- Estágio Probatório -->
-                        <div class="col-md-6">
-                            <label for="selectEstagioProbatorio" class="form-label fw-semibold">Servidor em Estágio Probatório?</label>
-                            <select id="selectEstagioProbatorio" class="form-select">
-                                <option value="nao" selected>Não</option>
-                                <option value="sim">Sim (Impedimento Legal)</option>
-                            </select>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício na Análise:</label>
+                                <input type="date" id="inputDataExercicio" class="form-control">
+                                <div id="msgDivergenciaData" class="form-text text-danger d-none fw-bold mt-1">
+                                    ⚠️ Divergência com a data do parecer da comissão!
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="selectEstagioProbatorio" class="form-label fw-semibold">Servidor em Estágio Probatório?</label>
+                                <select id="selectEstagioProbatorio" class="form-select">
+                                    <option value="nao" selected>Não</option>
+                                    <option value="sim">Sim (Impedimento Legal)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="alertaIncompatibilidadeRSC" class="alert alert-danger d-none mt-3 mb-0"></div>
+                        <div id="alertaRetornoComissao" class="alert alert-warning d-none mt-3 mb-0"></div>
+                    </div>
+
+                    <!-- 4. Botões de Ação/Download -->
+                    <div id="acoesGeracao" class="d-none mt-4 pt-3 border-top">
+                        <h5 class="text-center mb-3 fw-bold text-secondary">4. Documentos Gerados</h5>
+                        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                            <button id="btnGerarSeacar" class="btn btn-outline-success btn-lg px-4 shadow-sm rounded-pill">
+                                📄 Baixar Parecer SEACAR (.html)
+                            </button>
+                            <button id="btnGerarPortaria" class="btn btn-brand-uffs btn-lg px-4 shadow-sm rounded-pill">
+                                📜 Baixar Minuta Portaria (.doc)
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Alertas Dinâmicos de Validação -->
-                    <div id="alertaIncompatibilidadeRSC" class="alert alert-danger d-none mt-3 mb-0" role="alert"></div>
-                    <div id="alertaRetornoComissao" class="alert alert-warning d-none mt-3 mb-0" role="alert"></div>
-                </div>
+                    <!-- Relatório / Histórico Local -->
+                    <div id="secaoRelatorio" class="mt-5 pt-4 border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <h5 class="fw-bold text-brand-uffs mb-0">📊 Controle de Processos Analisados</h5>
+                            <div>
+                                <button id="btnExportarExcel" class="btn btn-sm btn-outline-success me-2">📥 Exportar CSV</button>
+                                <button id="btnLimparHistorico" class="btn btn-sm btn-outline-danger">🗑️ Limpar Histórico</button>
+                            </div>
+                        </div>
 
-                <!-- 4. Botões de Ação/Download -->
-                <div id="acoesGeracao" class="d-none mt-4 pt-3 border-top">
-                    <h5 class="text-center mb-3 fw-bold text-secondary">4. Documentos Gerados</h5>
-                    <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                        <button id="btnGerarSeacar" class="btn btn-outline-success btn-lg px-4 shadow-sm">
-                            📄 Baixar Parecer SEACAR (.html)
-                        </button>
-                        <button id="btnGerarPortaria" class="btn btn-success btn-lg px-4 shadow-sm">
-                            📜 Baixar Minuta Portaria (.doc)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Relatório / Histórico Local -->
-                <div id="secaoRelatorio" class="mt-5 pt-4 border-top">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                        <h5 class="fw-bold text-secondary mb-0">📊 Controle de Processos Analisados</h5>
-                        <div>
-                            <button id="btnExportarExcel" class="btn btn-sm btn-outline-success me-2">📥 Exportar CSV</button>
-                            <button id="btnLimparHistorico" class="btn btn-sm btn-outline-danger">🗑️ Limpar Histórico</button>
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-striped table-hover align-middle mb-0">
+                                <thead class="table-dark bg-brand-uffs">
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Processo</th>
+                                        <th>Servidor(a)</th>
+                                        <th>Cargo</th>
+                                        <th>SIAPE</th>
+                                        <th>Nível</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaHistorico"></tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <div class="table-responsive rounded-3 border">
-                        <table class="table table-striped table-hover align-middle mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Processo</th>
-                                    <th>Servidor(a)</th>
-                                    <th>SIAPE</th>
-                                    <th>Nível</th>
-                                    <th>Pontos</th>
-                                    <th>%</th>
-                                    <th>Resultado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelaHistorico">
-                                <!-- Preenchido dinamicamente -->
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
+            </div>
+        </main>
 
+        <!-- Rodapé Institucional UFFS -->
+        <footer class="footer-uffs mt-5">
+            <div class="container max-w-6xl text-center">
+                <p class="mb-1 fw-bold">Universidade Federal da Fronteira Sul - UFFS</p>
+                <p class="mb-0 small opacity-75">Pró-Reitoria de Gestão de Pessoas (PROGESP) • Divisão de Avaliação e Carreira (DAC) / SEACAR</p>
             </div>
-            
-            <div class="card-footer text-center bg-light text-muted py-3 border-top-0 rounded-bottom-3">
-                <small>Divisão de Avaliação e Carreira (DAC) • UFFS</small>
-            </div>
-        </div>
+        </footer>
     </div>
 
-    <!-- Inicialização do Worker PDF.js -->
     <script>
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
     </script>
-
-    <!-- Scripts da Aplicação -->
     <script src="js/parse-parecer-crsc.js"></script>
     <script src="js/parecer-seacar-pdf.js"></script>
     <script src="js/minuta-portaria-pdf.js"></script>
