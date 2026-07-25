@@ -124,7 +124,7 @@ function sincronizarDadosManuais() {
         window.dadosExtraidosPDF = {};
     }
     
-    // Força a leitura exata do que o usuário tem na tela
+    // Captura dos dados da Seção 2
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
     window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
     window.dadosExtraidosPDF.lotacao = inputLotacaoServidor ? inputLotacaoServidor.value.trim() : '';
@@ -132,12 +132,11 @@ function sincronizarDadosManuais() {
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     
-    // Datas da Seção 2
     window.dadosExtraidosPDF.dataVigenciaCRSC = inputDataParecer ? inputDataParecer.value : '';
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataExercicioComissao ? inputDataExercicioComissao.value : '';
     window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : '';
 
-    // Dados da Seção 3
+    // Captura dos dados da Seção 3
     if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
     if (selectRscSolicitado) {
         window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
@@ -199,7 +198,7 @@ async function processarArquivoPDF(e) {
             const dados = await window.parseParecerCRSC(file);
             window.dadosExtraidosPDF = { ...dados };
             
-            // Preenche os campos editáveis da Seção 2
+            // Popula os campos da Seção 2
             if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
             if (inputCargoServidor) inputCargoServidor.value = dados.cargo || '';
             if (inputLotacaoServidor) inputLotacaoServidor.value = dados.lotacao || '';
@@ -207,15 +206,16 @@ async function processarArquivoPDF(e) {
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
             
-            if (inputDataParecer) inputDataParecer.value = dados.dataVigenciaCRSC || '';
-            if (inputDataExercicioComissao) inputDataExercicioComissao.value = dados.dataExercicioComissao || '';
+            // Atribui a data de parecer e a data de exercício extraídas do parecer
+            if (inputDataParecer) inputDataParecer.value = dados.dataVigenciaCRSC || dados.dataParecer || '';
+            if (inputDataExercicioComissao) inputDataExercicioComissao.value = dados.dataExercicioComissao || dados.dataExercicio || '';
 
             if (inputCRSC && dados.unidadeCRSC) inputCRSC.value = dados.unidadeCRSC;
 
-            // Preenche valores padrão/sugeridos na Seção 3
+            // Popula sugestões da Seção 3
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
-            if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicioComissao || '';
+            if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicioComissao || dados.dataExercicio || '';
 
             if (statusLeitura) {
                 statusLeitura.classList.replace('alert-secondary', 'alert-success');
@@ -253,6 +253,7 @@ function executarValidacoesRegras() {
     const iqVal = selectIQAtual ? parseInt(selectIQAtual.value, 10) : null;
     const rscVal = selectRscSolicitado ? selectRscSolicitado.value : null;
 
+    // 1. Validação de Titulação Mínima x RSC Solicitado
     if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
         const regra = REQUISITOS_DECRETO_13048[rscVal];
         if (iqVal < regra.iqExigido) {
@@ -266,11 +267,12 @@ function executarValidacoesRegras() {
         }
     }
 
+    // 2. Validação do Estágio Probatório
     if (selectEstagioProbatorio && selectEstagioProbatorio.value === 'sim') {
         impedimentos.push("Servidor em Estágio Probatório (Impedimento legal).");
     }
 
-    // Validação comparativa de data de exercício (Seção 3 x Seção 2)
+    // 3. Validação Crítica de Divergência da Data de Exercício (Seção 3 vs Seção 2)
     const dataConfirmadaStr = inputDataExercicio ? inputDataExercicio.value : "";
     const dataCRSCStr = inputDataExercicioComissao ? inputDataExercicioComissao.value : "";
 
@@ -279,20 +281,17 @@ function executarValidacoesRegras() {
         const dataCRSC = parseDataParaObjeto(dataCRSCStr);
 
         if (dataConfirmada && dataCRSC) {
-            if (dataConfirmada > dataCRSC) {
+            // Se as duas datas forem diferentes, exige devolução do processo para a CRSC
+            if (dataConfirmada.getTime() !== dataCRSC.getTime()) {
                 requerDevolucaoCRSC = true;
+                const textoMensagem = `⚠️ Divergência na data de exercício! Confirmada no sistema: <strong>${formatarDataBr(dataConfirmadaStr)}</strong> | Informada no Parecer CRSC: <strong>${formatarDataBr(dataCRSCStr)}</strong>.`;
+                
                 if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = `⚠️ Data de exercício no cargo (${formatarDataBr(dataConfirmadaStr)}) é posterior à informada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
+                    msgDivergenciaData.innerHTML = textoMensagem;
                     msgDivergenciaData.classList.remove('d-none');
                 }
-                impedimentos.push(`Data de exercício no cargo (${formatarDataBr(dataConfirmadaStr)}) é posterior à informada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`);
-            } else if (dataConfirmada.getTime() !== dataCRSC.getTime()) {
-                requerDevolucaoCRSC = true;
-                if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = `⚠️ Divergência na data de exercício: confirmada (${formatarDataBr(dataConfirmadaStr)}) vs informada pela CRSC (${formatarDataBr(dataCRSCStr)}).`;
-                    msgDivergenciaData.classList.remove('d-none');
-                }
-                impedimentos.push(`Divergência na data de exercício (${formatarDataBr(dataConfirmadaStr)} x ${formatarDataBr(dataCRSCStr)}).`);
+                
+                impedimentos.push(`Divergência na data de exercício: data confirmada (${formatarDataBr(dataConfirmadaStr)}) difere do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`);
             } else if (msgDivergenciaData) {
                 msgDivergenciaData.classList.add('d-none');
             }
@@ -301,6 +300,7 @@ function executarValidacoesRegras() {
 
     window.dadosExtraidosPDF.impedimentos = impedimentos;
 
+    // Aplicação da Crítica/Ação de Bloqueio
     if (impedimentos.length > 0) {
         if (alertaRetornoComissao) {
             alertaRetornoComissao.classList.remove('d-none');
