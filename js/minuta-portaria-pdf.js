@@ -1,10 +1,30 @@
 window.gerarMinutaPortaria = function(dados) {
-    const nome = dados.nomeServidor || "NOME DO SERVIDOR";
+    if (!dados) dados = {};
+
+    const nome = dados.nomeServidor ? dados.nomeServidor.toUpperCase() : "NOME DO SERVIDOR";
     const cargo = dados.cargo || "CARGO DO SERVIDOR";
     const siape = dados.siape || "SIAPE";
-    const nivel = dados.nivelSolicitado || "RSC-PCCTAE-X";
-    const processo = dados.numeroProcesso || "23205.XXXXXX/XXXX-XX";
-    const dataExercicio = dados.dataExercicio ? formatarDataBr(dados.dataExercicio) : "XX/XX/XXXX";
+    const processo = dados.numeroProcesso || "23205.XXXXXX/2026-XX";
+    
+    // Tratamento padronizado para o nível RSC (Ex: "RSC-V", "V" ou "RSC-PCCTAE-V")
+    let nivel = dados.nivelSolicitado || "RSC-PCCTAE-X";
+    if (nivel && !nivel.startsWith("RSC-PCCTAE")) {
+        const nivelRomano = nivel.includes('-') ? nivel.split('-')[1] : nivel;
+        nivel = `RSC-PCCTAE-${nivelRomano}`;
+    }
+
+    // Tratamento de segurança para a data de exercício
+    let dataExercicio = "XX/XX/XXXX";
+    if (dados.dataExercicio) {
+        if (typeof formatarDataBr === 'function') {
+            dataExercicio = formatarDataBr(dados.dataExercicio);
+        } else if (dados.dataExercicio.includes('-')) {
+            const [ano, mes, dia] = dados.dataExercicio.split('-');
+            dataExercicio = `${dia}/${mes}/${ano}`;
+        } else {
+            dataExercicio = dados.dataExercicio;
+        }
+    }
     
     // Captura a CRSC selecionada na tela ou define o fallback padrão
     const comissaoCRSC = (dados.unidadeCRSC && dados.unidadeCRSC.trim() !== "") 
@@ -30,12 +50,16 @@ window.gerarMinutaPortaria = function(dados) {
         </html>
     `;
 
+    // Nome de arquivo limpo (sem caracteres especiais indevidos)
+    const nomeLimpo = nome.replace(/[^a-zA-Z0-9_ ]/g, "").replace(/\s+/g, "_");
+    
     const blob = new Blob(['\ufeff' + conteudoDoc], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Minuta_Portaria XXXX - Concede RSC a${nomeServidor}.doc`;
+    a.download = `Minuta_Portaria_Concede_RSC_${nomeLimpo}.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 };
