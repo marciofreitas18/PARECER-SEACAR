@@ -79,19 +79,16 @@ function inicializarApp() {
 }
 
 /**
- * Limpa os campos de entrada do formulário sem apagar o histórico acumulado no controle
+ * Limpa os campos de entrada do formulário sem resetar o input de arquivo caso seja chamada no upload
  */
-function limparFormularioProcesso() {
-    // 1. Reset do campo de upload de PDF
-    if (pdfCRSCInput) pdfCRSCInput.value = '';
+function limparFormularioProcesso(limparArquivoInput = true) {
+    if (limparArquivoInput && pdfCRSCInput) pdfCRSCInput.value = '';
 
-    // 2. Reset das seleções e inputs
     if (selectIQAtual) selectIQAtual.selectedIndex = 0;
     if (selectRscSolicitado) selectRscSolicitado.selectedIndex = 0;
     if (selectEstagioProbatorio) selectEstagioProbatorio.selectedIndex = 0;
     if (inputDataExercicio) inputDataExercicio.value = '';
 
-    // 3. Oculta mensagens de erro e seções condicionais
     if (secaoValidacoes) secaoValidacoes.classList.add('d-none');
     if (acoesGeracao) acoesGeracao.classList.add('d-none');
     if (statusLeitura) statusLeitura.classList.add('d-none');
@@ -99,27 +96,22 @@ function limparFormularioProcesso() {
     if (alertaRetornoComissao) alertaRetornoComissao.classList.add('d-none');
     if (msgDivergenciaData) msgDivergenciaData.classList.add('d-none');
 
-    // 4. Zera o objeto temporário em memória
     window.dadosExtraidosPDF = {};
 }
 
-// Expõe globalmente para o botão do HTML
 window.limparFormularioProcesso = limparFormularioProcesso;
 
 async function processarArquivoPDF(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 🧹 Limpa formulários anteriores antes do processamento do novo PDF
-    limparFormularioProcesso();
-    
-    // Readiciona a seleção do arquivo atual após o reset
-    e.target.files = e.target.files;
+    // Reseta o formulário SEM apagar o arquivo selecionado no input
+    limparFormularioProcesso(false);
 
     if (statusLeitura) {
         statusLeitura.classList.remove('d-none', 'alert-danger', 'alert-success');
         statusLeitura.classList.add('alert-secondary');
-        statusLeitura.textContent = "⌛ Lendo e extraindo informações do PDF...";
+        statusLeitura.textContent = "⌛ Lendo e analisando arquivo PDF...";
     }
 
     try {
@@ -130,13 +122,13 @@ async function processarArquivoPDF(e) {
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
 
-            if (dados.dataExercicioComissao && inputDataExercicio && !inputDataExercicio.value) {
+            if (dados.dataExercicioComissao && inputDataExercicio) {
                 inputDataExercicio.value = dados.dataExercicioComissao;
             }
 
             if (statusLeitura) {
                 statusLeitura.classList.replace('alert-secondary', 'alert-success');
-                statusLeitura.textContent = "✅ Leitura concluída com sucesso!";
+                statusLeitura.innerHTML = `✅ <strong>Análise Concluída!</strong> Servidor: <u>${dados.nomeServidor || 'Não identificado'}</u> | Processo: <u>${dados.numeroProcesso || 'Não identificado'}</u>`;
             }
             
             if (secaoValidacoes) secaoValidacoes.classList.remove('d-none');
@@ -145,13 +137,13 @@ async function processarArquivoPDF(e) {
             executarValidacoesRegras();
             salvarProcessoNoHistorico(window.dadosExtraidosPDF);
         } else {
-            throw new Error("A função parseParecerCRSC não está disponível. Verifique a importação do arquivo js/parse-parecer-crsc.js.");
+            throw new Error("A função parseParecerCRSC não está disponível.");
         }
     } catch (err) {
         console.error("Erro no processamento do PDF:", err);
         if (statusLeitura) {
             statusLeitura.classList.replace('alert-secondary', 'alert-danger');
-            statusLeitura.textContent = `❌ Erro: ${err.message}`;
+            statusLeitura.textContent = `❌ Erro na leitura do arquivo: ${err.message}`;
         }
     }
 }
@@ -160,14 +152,13 @@ function executarValidacoesRegras() {
     let impedimentos = [];
     let requerDevolucaoCRSC = false;
 
-    // 1. Validação IQ vs RSC
     const iqVal = selectIQAtual ? parseInt(selectIQAtual.value, 10) : null;
     const rscVal = selectRscSolicitado ? selectRscSolicitado.value : null;
 
     if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
         const regra = REQUISITOS_DECRETO_13048[rscVal];
         if (iqVal < regra.iqExigido) {
-            impedimentos.push(`Incompatibilidade com Dec. 13.048/2026: Para solicitar o ${rscVal}, exige-se IQ mínimo de ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
+            impedimentos.push(`Incompatibilidade: Para solicitar o ${rscVal}, exige-se IQ mínimo de ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
             if (alertaIncompatibilidadeRSC) {
                 alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Incompatibilidade Legal:</strong> O nível <strong>${rscVal}</strong> exige no mínimo ${regra.descricao}.`;
                 alertaIncompatibilidadeRSC.classList.remove('d-none');
@@ -177,12 +168,10 @@ function executarValidacoesRegras() {
         }
     }
 
-    // 2. Validação Estágio Probatório
     if (selectEstagioProbatorio && selectEstagioProbatorio.value === 'sim') {
-        impedimentos.push("Servidor em Estágio Probatório (Impedimento legal para concessão de RSC).");
+        impedimentos.push("Servidor em Estágio Probatório (Impedimento legal).");
     }
 
-    // 3. Validação Data de Exercício
     const dataDigitadaStr = inputDataExercicio ? inputDataExercicio.value : "";
     const dataCRSCStr = window.dadosExtraidosPDF ? (window.dadosExtraidosPDF.dataExercicioComissao || window.dadosExtraidosPDF.dataExercicio) : "";
 
@@ -191,36 +180,32 @@ function executarValidacoesRegras() {
         const dataCRSC = parseDataParaObjeto(dataCRSCStr);
 
         if (dataDigitada && dataCRSC) {
-            // Se Digitada > CRSC -> DEVOLUÇÃO
             if (dataDigitada > dataCRSC) {
                 requerDevolucaoCRSC = true;
                 if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>POSTERIOR</strong> à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
+                    msgDivergenciaData.innerHTML = `⚠️ Data digitada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}).`;
                     msgDivergenciaData.classList.remove('d-none');
                 }
-                impedimentos.push(`Data de exercício informada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). Necessário retorno para readequação.`);
-            } 
-            else if (dataDigitada.getTime() !== dataCRSC.getTime()) {
+                impedimentos.push("Data de exercício posterior à informada pela CRSC.");
+            } else if (dataDigitada.getTime() !== dataCRSC.getTime()) {
                 requerDevolucaoCRSC = true;
                 if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
+                    msgDivergenciaData.innerHTML = `⚠️ Divergência na data de exercício (${formatarDataBr(dataDigitadaStr)} x ${formatarDataBr(dataCRSCStr)}).`;
                     msgDivergenciaData.classList.remove('d-none');
                 }
-                impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
-            } 
-            else if (msgDivergenciaData) {
+                impedimentos.push("Divergência na data de exercício.");
+            } else if (msgDivergenciaData) {
                 msgDivergenciaData.classList.add('d-none');
             }
         }
     }
 
-    // Atualização dos alertas na tela
     if (impedimentos.length > 0) {
         if (alertaRetornoComissao) {
             alertaRetornoComissao.classList.remove('d-none');
             if (requerDevolucaoCRSC) {
                 alertaRetornoComissao.className = "alert alert-warning mt-3 mb-0 shadow-sm";
-                alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA À CRSC:</strong><br>- ${impedimentos.join('<br>- ')}`;
+                alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA:</strong><br>- ${impedimentos.join('<br>- ')}`;
                 window.dadosExtraidosPDF.resultado = "RETORNAR À CRSC";
             } else {
                 alertaRetornoComissao.className = "alert alert-danger mt-3 mb-0 shadow-sm";
@@ -235,7 +220,6 @@ function executarValidacoesRegras() {
         if (window.dadosExtraidosPDF) window.dadosExtraidosPDF.resultado = "DEFERIDO";
     }
 
-    // Sincronização Global
     if (window.dadosExtraidosPDF) {
         if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
         if (selectRscSolicitado) window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
@@ -278,7 +262,6 @@ function salvarProcessoNoHistorico(dados) {
         resultado: dados.resultado || 'ANALISADO'
     };
     
-    // Evita duplicatas consecutivas
     if (historico.length === 0 || historico[0].processo !== item.processo) {
         historico.unshift(item);
         localStorage.setItem('historicoRSC', JSON.stringify(historico));
