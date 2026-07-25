@@ -13,7 +13,7 @@ window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
 // Mapeamento Elementos do DOM
 let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
-let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputCRSC;
+let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputDataExercicioComissao, inputCRSC;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     secaoValidacoes = document.getElementById('secaoValidacoes');
     acoesGeracao = document.getElementById('acoesGeracao');
 
-    // Campos de Edição Manual dos Dados do Parecer
+    // Campos de Edição Manual dos Dados do Parecer (Seção 2)
     inputNomeServidor = document.getElementById('inputNomeServidor');
     inputCargoServidor = document.getElementById('inputCargoServidor') || document.getElementById('inputCargo');
     inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
@@ -33,9 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
     inputPontuacao = document.getElementById('inputPontuacao');
     inputDataParecer = document.getElementById('inputDataParecer');
+    inputDataExercicioComissao = document.getElementById('inputDataExercicioComissao');
     inputCRSC = document.getElementById('inputCRSC');
 
-    // Campos de Validação
+    // Campos de Validação (Seção 3)
     selectIQAtual = document.getElementById('selectIQAtual');
     selectRscSolicitado = document.getElementById('selectRscSolicitado');
     inputDataExercicio = document.getElementById('inputDataExercicio');
@@ -66,6 +67,7 @@ function inicializarApp() {
         inputNumeroProcesso, 
         inputPontuacao, 
         inputDataParecer,
+        inputDataExercicioComissao,
         inputCRSC
     ];
 
@@ -130,10 +132,12 @@ function sincronizarDadosManuais() {
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     
-    // Data do Parecer/Vigência Financeira
+    // Datas da Seção 2
     window.dadosExtraidosPDF.dataVigenciaCRSC = inputDataParecer ? inputDataParecer.value : '';
+    window.dadosExtraidosPDF.dataExercicioComissao = inputDataExercicioComissao ? inputDataExercicioComissao.value : '';
     window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : '';
 
+    // Dados da Seção 3
     if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
     if (selectRscSolicitado) {
         window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
@@ -141,12 +145,7 @@ function sincronizarDadosManuais() {
         window.dadosExtraidosPDF.nivelRscRomano = valorRsc.includes('-') ? valorRsc.split('-')[1] : valorRsc;
     }
     
-    // Data de Exercício no Cargo Atual
-    if (inputDataExercicio) {
-        window.dadosExtraidosPDF.dataExercicioComissao = inputDataExercicio.value;
-        window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
-    }
-    
+    if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
 
     executarValidacoesRegras();
@@ -162,6 +161,7 @@ function limparFormularioProcesso(limparArquivoInput = true) {
     if (inputNumeroProcesso) inputNumeroProcesso.value = '';
     if (inputPontuacao) inputPontuacao.value = '';
     if (inputDataParecer) inputDataParecer.value = '';
+    if (inputDataExercicioComissao) inputDataExercicioComissao.value = '';
     if (inputCRSC) inputCRSC.selectedIndex = 0;
 
     if (selectIQAtual) selectIQAtual.selectedIndex = 0;
@@ -199,7 +199,7 @@ async function processarArquivoPDF(e) {
             const dados = await window.parseParecerCRSC(file);
             window.dadosExtraidosPDF = { ...dados };
             
-            // Preenche os campos editáveis no DOM
+            // Preenche os campos editáveis da Seção 2
             if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
             if (inputCargoServidor) inputCargoServidor.value = dados.cargo || '';
             if (inputLotacaoServidor) inputLotacaoServidor.value = dados.lotacao || '';
@@ -207,14 +207,15 @@ async function processarArquivoPDF(e) {
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
             
-            // Atribui as duas datas extraídas separadamente
             if (inputDataParecer) inputDataParecer.value = dados.dataVigenciaCRSC || '';
-            if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicioComissao || '';
+            if (inputDataExercicioComissao) inputDataExercicioComissao.value = dados.dataExercicioComissao || '';
 
             if (inputCRSC && dados.unidadeCRSC) inputCRSC.value = dados.unidadeCRSC;
 
+            // Preenche valores padrão/sugeridos na Seção 3
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
+            if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicioComissao || '';
 
             if (statusLeitura) {
                 statusLeitura.classList.replace('alert-secondary', 'alert-success');
@@ -269,21 +270,29 @@ function executarValidacoesRegras() {
         impedimentos.push("Servidor em Estágio Probatório (Impedimento legal).");
     }
 
-    const dataExercStr = inputDataExercicio ? inputDataExercicio.value : "";
-    const dataParecerStr = inputDataParecer ? inputDataParecer.value : "";
+    // Validação comparativa de data de exercício (Seção 3 x Seção 2)
+    const dataConfirmadaStr = inputDataExercicio ? inputDataExercicio.value : "";
+    const dataCRSCStr = inputDataExercicioComissao ? inputDataExercicioComissao.value : "";
 
-    if (dataExercStr && dataParecerStr) {
-        const dataExerc = parseDataParaObjeto(dataExercStr);
-        const dataParecer = parseDataParaObjeto(dataParecerStr);
+    if (dataConfirmadaStr && dataCRSCStr) {
+        const dataConfirmada = parseDataParaObjeto(dataConfirmadaStr);
+        const dataCRSC = parseDataParaObjeto(dataCRSCStr);
 
-        if (dataExerc && dataParecer) {
-            if (dataExerc > dataParecer) {
+        if (dataConfirmada && dataCRSC) {
+            if (dataConfirmada > dataCRSC) {
                 requerDevolucaoCRSC = true;
                 if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = `⚠️ Data de exercício (${formatarDataBr(dataExercStr)}) é posterior à data do parecer da comissão (${formatarDataBr(dataParecerStr)}).`;
+                    msgDivergenciaData.innerHTML = `⚠️ Data de exercício no cargo (${formatarDataBr(dataConfirmadaStr)}) é posterior à informada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
                     msgDivergenciaData.classList.remove('d-none');
                 }
-                impedimentos.push(`Data de exercício posterior à informada no parecer da CRSC (${formatarDataBr(dataExercStr)} x ${formatarDataBr(dataParecerStr)}).`);
+                impedimentos.push(`Data de exercício no cargo (${formatarDataBr(dataConfirmadaStr)}) é posterior à informada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`);
+            } else if (dataConfirmada.getTime() !== dataCRSC.getTime()) {
+                requerDevolucaoCRSC = true;
+                if (msgDivergenciaData) {
+                    msgDivergenciaData.innerHTML = `⚠️ Divergência na data de exercício: confirmada (${formatarDataBr(dataConfirmadaStr)}) vs informada pela CRSC (${formatarDataBr(dataCRSCStr)}).`;
+                    msgDivergenciaData.classList.remove('d-none');
+                }
+                impedimentos.push(`Divergência na data de exercício (${formatarDataBr(dataConfirmadaStr)} x ${formatarDataBr(dataCRSCStr)}).`);
             } else if (msgDivergenciaData) {
                 msgDivergenciaData.classList.add('d-none');
             }
@@ -297,7 +306,7 @@ function executarValidacoesRegras() {
             alertaRetornoComissao.classList.remove('d-none');
             if (requerDevolucaoCRSC) {
                 alertaRetornoComissao.className = "alert alert-warning mt-3 mb-0 shadow-sm";
-                alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA:</strong><br>- ${impedimentos.join('<br>- ')}`;
+                alertaRetornoComissao.innerHTML = `<strong>⚠️ DEVOLUÇÃO NECESSÁRIA À CRSC:</strong><br>- ${impedimentos.join('<br>- ')}`;
                 window.dadosExtraidosPDF.resultado = "RETORNAR À CRSC";
             } else {
                 alertaRetornoComissao.className = "alert alert-danger mt-3 mb-0 shadow-sm";
