@@ -13,7 +13,7 @@ window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
 // Mapeamento Elementos do DOM
 let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
-let inputNomeServidor, inputCargoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputCRSC;
+let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputCRSC;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
@@ -28,11 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Campos de Edição Manual dos Dados do Parecer
     inputNomeServidor = document.getElementById('inputNomeServidor');
     inputCargoServidor = document.getElementById('inputCargoServidor') || document.getElementById('inputCargo');
+    inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
     inputSiape = document.getElementById('inputSiape');
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
     inputPontuacao = document.getElementById('inputPontuacao');
     inputDataParecer = document.getElementById('inputDataParecer');
-    inputCRSC = document.getElementById('inputCRSC'); // Novo campo CRSC
+    inputCRSC = document.getElementById('inputCRSC');
 
     // Campos de Validação
     selectIQAtual = document.getElementById('selectIQAtual');
@@ -60,6 +61,7 @@ function inicializarApp() {
     const camposManuais = [
         inputNomeServidor, 
         inputCargoServidor, 
+        inputLotacaoServidor,
         inputSiape, 
         inputNumeroProcesso, 
         inputPontuacao, 
@@ -123,16 +125,16 @@ function sincronizarDadosManuais() {
     // Força a leitura exata do que o usuário tem na tela
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
     window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
+    window.dadosExtraidosPDF.lotacao = inputLotacaoServidor ? inputLotacaoServidor.value.trim() : '';
     window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataParecer ? inputDataParecer.value : '';
-    window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : ''; // Valor da CRSC selecionada
+    window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : '';
 
     if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
     if (selectRscSolicitado) {
         window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
-        // Trata a conversão para número romano se necessário (Ex: RSC-V -> V)
         const valorRsc = selectRscSolicitado.value;
         window.dadosExtraidosPDF.nivelRscRomano = valorRsc.includes('-') ? valorRsc.split('-')[1] : valorRsc;
     }
@@ -147,6 +149,7 @@ function limparFormularioProcesso(limparArquivoInput = true) {
 
     if (inputNomeServidor) inputNomeServidor.value = '';
     if (inputCargoServidor) inputCargoServidor.value = '';
+    if (inputLotacaoServidor) inputLotacaoServidor.value = '';
     if (inputSiape) inputSiape.value = '';
     if (inputNumeroProcesso) inputNumeroProcesso.value = '';
     if (inputPontuacao) inputPontuacao.value = '';
@@ -191,6 +194,7 @@ async function processarArquivoPDF(e) {
             // Preenche os campos editáveis
             if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
             if (inputCargoServidor) inputCargoServidor.value = dados.cargo || '';
+            if (inputLotacaoServidor) inputLotacaoServidor.value = dados.lotacao || '';
             if (inputSiape) inputSiape.value = dados.siape || '';
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
@@ -220,7 +224,6 @@ async function processarArquivoPDF(e) {
             statusLeitura.innerHTML = `⚠️ <strong>Não foi possível ler o PDF automaticamente.</strong> Preencha os campos abaixo manualmente para gerar a portaria/parecer.`;
         }
         
-        // Em caso de falha na leitura do PDF, libera os painéis para digitação manual total
         exibirPaineisEValidar();
     }
 }
@@ -286,7 +289,6 @@ function executarValidacoesRegras() {
         }
     }
 
-    // Registra a lista de impedimentos e o resultado para consumo no Parecer/Portaria
     window.dadosExtraidosPDF.impedimentos = impedimentos;
 
     if (impedimentos.length > 0) {
@@ -337,10 +339,10 @@ function salvarProcessoNoHistorico(dados) {
         dataHora: new Date().toLocaleString('pt-BR'),
         processo: dados.numeroProcesso || '--',
         servidor: dados.nomeServidor || '--',
+        cargo: dados.cargo || '--',
+        lotacao: dados.lotacao || '--',
         siape: dados.siape || '--',
         nivel: dados.nivelSolicitado || '--',
-        pontos: dados.pontuacaoObtida || '0',
-        percentual: (dados.iqAtual || '0') + '%',
         resultado: dados.resultado || 'ANALISADO'
     };
     
@@ -368,10 +370,10 @@ function carregarHistoricoTabela() {
             <td><small>${item.dataHora}</small></td>
             <td><strong>${item.processo}</strong></td>
             <td>${item.servidor}</td>
+            <td>${item.cargo}</td>
+            <td>${item.lotacao}</td>
             <td>${item.siape}</td>
             <td>${item.nivel}</td>
-            <td>${item.pontos}</td>
-            <td>${item.percentual}</td>
             <td><span class="badge ${badgeClass}">${item.resultado}</span></td>
         `;
         tabelaHistorico.appendChild(tr);
@@ -382,9 +384,9 @@ function exportarHistoricoCSV() {
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     if (historico.length === 0) return alert("Não há dados para exportar.");
 
-    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,SIAPE,Nivel,Pontos,Percentual,Resultado\n";
+    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Nivel,Resultado\n";
     historico.forEach(i => {
-        csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.siape}","${i.nivel}","${i.pontos}","${i.percentual}","${i.resultado}"\n`;
+        csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.cargo}","${i.lotacao}","${i.siape}","${i.nivel}","${i.resultado}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
