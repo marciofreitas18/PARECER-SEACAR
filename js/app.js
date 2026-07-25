@@ -94,7 +94,7 @@ async function processarArquivoPDF(e) {
     }
 }
 
-// Lógica de Validação Unificada e Corrigida
+// Lógica de Validação Principal com Trativa Robusta de Datas
 function executarValidacoesRegras() {
     let impedimentos = [];
     let requerDevolucaoCRSC = false;
@@ -121,32 +121,35 @@ function executarValidacoesRegras() {
         impedimentos.push("Servidor em Estágio Probatório (Impedimento legal para concessão de RSC).");
     }
 
-    // 3. Validação Data de Exercício (Comparação de Maior/Posterior)
+    // 3. Validação Data de Exercício (Tratamento e Comparação Robusta)
     const dataDigitadaStr = inputDataExercicio.value; // YYYY-MM-DD
-    const dataCRSCStr = window.dadosExtraidosPDF.dataExercicioComissao; // YYYY-MM-DD
+    const dataCRSCStr = window.dadosExtraidosPDF.dataExercicioComissao || window.dadosExtraidosPDF.dataExercicio;
 
     if (dataDigitadaStr && dataCRSCStr) {
-        const dataDigitada = new Date(dataDigitadaStr);
-        const dataCRSC = new Date(dataCRSCStr);
+        // Padroniza ambas as datas para o objeto Date do JavaScript
+        const dataDigitada = parseDataParaObjeto(dataDigitadaStr);
+        const dataCRSC = parseDataParaObjeto(dataCRSCStr);
 
-        // Se a data digitada for MAIOR (posterior) que a data apurada pela CRSC
-        if (dataDigitada > dataCRSC) {
-            requerDevolucaoCRSC = true;
-            msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>MAIOR/POSTERIOR</strong> à lançada no parecer da CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
-            msgDivergenciaData.classList.remove('d-none');
-            
-            impedimentos.push(`Data de exercício informada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). Necessário retorno para adequação dos cálculos.`);
-        } 
-        // Se houver qualquer outra divergência
-        else if (dataDigitadaStr !== dataCRSCStr) {
-            requerDevolucaoCRSC = true;
-            msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
-            msgDivergenciaData.classList.remove('d-none');
-            
-            impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
-        } 
-        else {
-            msgDivergenciaData.classList.add('d-none');
+        if (dataDigitada && dataCRSC) {
+            // Comparação: Se a data digitada for posterior à data da CRSC
+            if (dataDigitada > dataCRSC) {
+                requerDevolucaoCRSC = true;
+                msgDivergenciaData.innerHTML = `⚠️ Data de exercício digitada (${formatarDataBr(dataDigitadaStr)}) é <strong>POSTERIOR</strong> à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). O processo deve ser retornado!`;
+                msgDivergenciaData.classList.remove('d-none');
+                
+                impedimentos.push(`Data de exercício informada (${formatarDataBr(dataDigitadaStr)}) é posterior à considerada pela CRSC (${formatarDataBr(dataCRSCStr)}). Necessário retorno para readequação.`);
+            } 
+            // Se as datas forem diferentes (mesmo que anterior)
+            else if (dataDigitada.getTime() !== dataCRSC.getTime()) {
+                requerDevolucaoCRSC = true;
+                msgDivergenciaData.innerHTML = `⚠️ Divergência detectada entre a data digitada (${formatarDataBr(dataDigitadaStr)}) e a do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`;
+                msgDivergenciaData.classList.remove('d-none');
+                
+                impedimentos.push("Divergência entre a Data de Exercício digitada e a apurada no parecer da CRSC.");
+            } 
+            else {
+                msgDivergenciaData.classList.add('d-none');
+            }
         }
     }
 
@@ -178,11 +181,18 @@ function executarValidacoesRegras() {
     window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
 }
 
-// Auxiliar: Formatação de Data YYYY-MM-DD -> DD/MM/YYYY
-function formatarDataBr(dataIso) {
-    if (!dataIso) return '';
-    const partes = dataIso.split('-');
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+// Auxiliar: Converte strings YYYY-MM-DD ou DD/MM/YYYY para o objeto Date
+function parseDataParaObjeto(strData) {
+    if (!strData) return null;
+    if (strData.includes('-')) {
+        const [ano, mes, dia] = strData.split('-');
+        return new Date(ano, mes - 1, dia);
+    }
+    if (strData.includes('/')) {
+        const [dia, mes, ano] = strData.split('/');
+        return new Date(ano, mes - 1, dia);
+    }
+    return null;
 }
 
 // Gestão de Histórico no LocalStorage
