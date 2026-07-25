@@ -30,7 +30,16 @@ function gerarParecerSEACAR(dados) {
             : `CRSC Campus ${comissaoNome}`;
     }
 
-    const dataVigencia = dados.dataExercicio ? formatarDataBr(dados.dataExercicio) : (dados.dataVigencia || dados.dataRequerimento || dataHojeFormatada);
+    // AJUSTE: Prioriza a data de vigência do item 3 do parecer da CRSC
+    let dataVigenciaBr = dataHojeFormatada;
+    if (dados.dataVigenciaCRSC) {
+        dataVigenciaBr = typeof formatarDataBr === 'function' ? formatarDataBr(dados.dataVigenciaCRSC) : dados.dataVigenciaCRSC;
+    } else if (dados.dataExercicio) {
+        dataVigenciaBr = typeof formatarDataBr === 'function' ? formatarDataBr(dados.dataExercicio) : dados.dataExercicio;
+    } else if (dados.dataVigencia || dados.dataRequerimento) {
+        dataVigenciaBr = typeof formatarDataBr === 'function' ? formatarDataBr(dados.dataVigencia || dados.dataRequerimento) : (dados.dataVigencia || dados.dataRequerimento);
+    }
+
     const resultado = dados.resultado || "DEFERIDO";
     const impedimentos = dados.impedimentos || [];
 
@@ -104,7 +113,7 @@ function gerarParecerSEACAR(dados) {
                 Em face do exposto, o SEACAR conclui pela <strong>CONFORMIDADE LEGAL e CADASTRAL</strong> do processo em epígrafe, atestando estarem satisfeitos os requisitos do art. 13 do Decreto nº 13.048/2026 e do art. 20 da Portaria nº 4725/GR/UFFS/2026, e que os dados informados coincidem com o cadastro funcional oficial da UFFS.
             </p>
             <p>
-                Sugere-se o encaminhamento à Divisão de Avaliação e Carreira (DAC) e à Diretoria de Desenvolvimento de Pessoal (DDP) para os atos subsequentes e, na sequência, à Pró-Reitoria de Gestão de Pessoas (PROGESP) para expedição da respectiva Portaria de Concessão do RSC-PCCTAE Nível ${nivelRomano}, com efeitos financeiros a contar de ${dataVigencia}, nos termos do Decreto nº 13.048/2026.
+                Sugere-se o encaminhamento à Divisão de Avaliação e Carreira (DAC) e à Diretoria de Desenvolvimento de Pessoal (DDP) para os atos subsequentes e, na sequência, à Pró-Reitoria de Gestão de Pessoas (PROGESP) para expedição da respectiva Portaria de Concessão do RSC-PCCTAE Nível ${nivelRomano}, com efeitos financeiros a contar de ${dataVigenciaBr}, nos termos do Decreto nº 13.048/2026.
             </p>
         `;
     }
