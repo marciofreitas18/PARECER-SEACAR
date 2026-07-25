@@ -13,16 +13,17 @@ window.gerarMinutaPortaria = function(dados) {
         nivel = `RSC-PCCTAE-${nivelRomano}`;
     }
 
-    // Tratamento de segurança para a data de exercício
-    let dataExercicio = "XX/XX/XXXX";
-    if (dados.dataExercicio) {
+    // Tratamento de segurança para a Data do Parecer / Vigência Financeira
+    let dataVigencia = "XX/XX/XXXX";
+    const dataVigenciaRaw = dados.dataVigenciaCRSC || dados.dataParecer;
+    if (dataVigenciaRaw) {
         if (typeof formatarDataBr === 'function') {
-            dataExercicio = formatarDataBr(dados.dataExercicio);
-        } else if (dados.dataExercicio.includes('-')) {
-            const [ano, mes, dia] = dados.dataExercicio.split('-');
-            dataExercicio = `${dia}/${mes}/${ano}`;
+            dataVigencia = formatarDataBr(dataVigenciaRaw);
+        } else if (dataVigenciaRaw.includes('-')) {
+            const [ano, mes, dia] = dataVigenciaRaw.split('-');
+            dataVigencia = `${dia}/${mes}/${ano}`;
         } else {
-            dataExercicio = dados.dataExercicio;
+            dataVigencia = dataVigenciaRaw;
         }
     }
     
@@ -43,7 +44,7 @@ window.gerarMinutaPortaria = function(dados) {
             <br>
             <p style="text-align: justify;"><strong>RESOLVE:</strong></p>
             <br>
-            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, considerando o parecer favorável da <strong>${comissaoCRSC}</strong> constante no Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataExercicio}</strong>.</p>
+            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, considerando o parecer favorável da <strong>${comissaoCRSC}</strong> constante no Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataVigencia}</strong>.</p>
             <br>
             <p style="text-align: justify;"><strong>Art. 2º</strong> Esta Portaria entra em vigor na data de sua publicação.</p>
         </body>
@@ -55,7 +56,6 @@ window.gerarMinutaPortaria = function(dados) {
     const a = document.createElement('a');
     
     a.href = url;
-    // Nome do arquivo baixado agora usa a variável `nome` do servidor
     a.download = `Minuta_Portaria XXXX - Concede RSC a ${nome}.doc`;
     
     document.body.appendChild(a);
