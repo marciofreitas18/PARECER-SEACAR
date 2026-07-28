@@ -1,11 +1,11 @@
 // Matriz de Requisitos da Titulação/IQ Atual do Servidor por Nível Solicitado
 const REQUISITOS_DECRETO_13048 = {
-    'RSC-I':   { iqExigido: 10,  descricao: 'Sem ensino fundamental completo (IQ 10%)' },
-    'RSC-II':  { iqExigido: 15,  descricao: 'Ensino fundamental completo (IQ 15%)' },
-    'RSC-III': { iqExigido: 15,  descricao: 'Ensino fundamental completo (IQ 15%)' },
-    'RSC-IV':  { iqExigido: 25,  descricao: 'Ensino Médio / Técnico (IQ 25%)' },
-    'RSC-V':   { iqExigido: 30,  descricao: 'Graduação / Ensino Superior (IQ 30%)' },
-    'RSC-VI':  { iqExigido: 52,  descricao: 'Especialização / Lato Sensu (IQ 52%)' }
+    'RSC-I':   { iqExigido: 0,  descricao: 'Sem ensino fundamental completo (IQ 0%)' },
+    'RSC-II':  { iqExigido: 10,  descricao: 'Ensino fundamental completo (IQ 10%)' },
+    'RSC-III': { iqExigido: 15,  descricao: 'Ensino Médio / Técnico (IQ 15%)' },
+    'RSC-IV':  { iqExigido: 25,  descricao: 'Graduação / Ensino Superior (IQ 25%)' },
+    'RSC-V':   { iqExigido: 30,  descricao: 'Especialização / Lato Sensu (IQ 30%)' },
+    'RSC-VI':  { iqExigido: 52,  descricao: 'Mestrado (IQ 52%)' }
 };
 
 // Objeto global de dados do processo atual
