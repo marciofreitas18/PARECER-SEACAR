@@ -70,11 +70,19 @@ function gerarParecerSEACAR(dados) {
         situacaoEstagio = "se encontra em estágio probatório (impedimento legal)";
     }
 
-    // 2.3 Alerta de Divergência de Data
+// 2.3 Alerta / Registro de Divergência de Data
     let blocoDivergenciaData = "";
-    if (resultado === "RETORNAR À CRSC" || impedimentos.some(i => i.toLowerCase().includes("divergência na data de exercício"))) {
+    const ehErroMaterial = dados.erroMaterialSanavel || false;
+
+    if (ehErroMaterial) {
         blocoDivergenciaData = `
-            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; margin-top: 10px; border-radius: 4px;">
+            <div style="background-color: #e2e3e5; border-left: 4px solid #6c757d; color: #383d41; padding: 10px; margin-top: 10px; margin-bottom: 10px; border-radius: 4px; text-indent: 0;">
+                <strong>📌 RESSALVA DE ERRO MATERIAL SANÁVEL:</strong> Constatou-se divergência pontual entre a data de exercício registrada no cadastro do servidor (<strong>${dataExercicio}</strong>) e a grafada no Parecer da CRSC (<strong>${dataExercicioComissao}</strong>). Por tratar-se de mero <strong>erro material sanável</strong>, que não altera o preenchimento dos requisitos do Decreto nº 13.048/2026 nem afeta a vigência financeira, <strong>retifica-se o dado de ofício nesta análise técnica</strong>, restando desnecessária a devolução dos autos à comissão de origem para este fim.
+            </div>
+        `;
+    } else if (resultado === "RETORNAR À CRSC" || impedimentos.some(i => i.toLowerCase().includes("divergência na data de exercício"))) {
+        blocoDivergenciaData = `
+            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; margin-top: 10px; border-radius: 4px; text-indent: 0;">
                 <strong>⚠️ DIVERGÊNCIA IDENTIFICADA:</strong> Constatou-se divergência entre a data de exercício registrada nos assentamentos funcionais (<strong>${dataExercicio}</strong>) e a data informada no Parecer da CRSC (<strong>${dataExercicioComissao}</strong>). Em observância à segurança jurídica e à exatidão dos registros cadastrais, o processo deverá retornar à comissão para adequação.
             </div>
         `;
