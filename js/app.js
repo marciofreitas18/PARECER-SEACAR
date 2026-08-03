@@ -16,6 +16,7 @@ let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeraca
 let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputDataExercicioComissao, inputCRSC;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
+let checkErroMaterial, boxErroMaterial;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -42,10 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
     inputDataExercicio = document.getElementById('inputDataExercicio');
     selectEstagioProbatorio = document.getElementById('selectEstagioProbatorio');
 
+    // Mapeamento do Alerta e Checkbox de Erro Material
     alertaIncompatibilidadeRSC = document.getElementById('alertaIncompatibilidadeRSC');
     alertaRetornoComissao = document.getElementById('alertaRetornoComissao');
     msgDivergenciaData = document.getElementById('msgDivergenciaData');
+    checkErroMaterial = document.getElementById('checkErroMaterial');
+    boxErroMaterial = document.getElementById('boxErroMaterial');
 
+    // Botões e Tabela
     btnGerarSeacar = document.getElementById('btnGerarSeacar');
     btnGerarPortaria = document.getElementById('btnGerarPortaria');
     btnExportarExcel = document.getElementById('btnExportarExcel');
@@ -85,6 +90,7 @@ function inicializarApp() {
         inputDataExercicio.addEventListener('input', sincronizarDadosManuais);
     }
     if (selectEstagioProbatorio) selectEstagioProbatorio.addEventListener('change', sincronizarDadosManuais);
+    if (checkErroMaterial) checkErroMaterial.addEventListener('change', sincronizarDadosManuais);
 
     // Geração do Parecer SEACAR usando 100% dos dados sincronizados da tela
     if (btnGerarSeacar) {
@@ -146,6 +152,7 @@ function sincronizarDadosManuais() {
     
     if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+    if (checkErroMaterial) window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
 
     executarValidacoesRegras();
 }
@@ -167,6 +174,9 @@ function limparFormularioProcesso(limparArquivoInput = true) {
     if (selectRscSolicitado) selectRscSolicitado.selectedIndex = 0;
     if (selectEstagioProbatorio) selectEstagioProbatorio.selectedIndex = 0;
     if (inputDataExercicio) inputDataExercicio.value = '';
+
+    if (checkErroMaterial) checkErroMaterial.checked = false;
+    if (boxErroMaterial) boxErroMaterial.classList.add('d-none');
 
     if (secaoDadosParecer) secaoDadosParecer.classList.add('d-none');
     if (secaoValidacoes) secaoValidacoes.classList.add('d-none');
@@ -254,7 +264,7 @@ function executarValidacoesRegras() {
     const rscVal = selectRscSolicitado ? selectRscSolicitado.value : null;
 
     // 1. Validação de Titulação Mínima x RSC Solicitado
-    if (iqVal && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
+    if (iqVal !== null && !isNaN(iqVal) && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
         const regra = REQUISITOS_DECRETO_13048[rscVal];
         if (iqVal < regra.iqExigido) {
             impedimentos.push(`Incompatibilidade: Para solicitar o ${rscVal}, exige-se IQ mínimo de ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
@@ -275,27 +285,51 @@ function executarValidacoesRegras() {
     // 3. Validação Crítica de Divergência da Data de Exercício (Seção 3 vs Seção 2)
     const dataConfirmadaStr = inputDataExercicio ? inputDataExercicio.value : "";
     const dataCRSCStr = inputDataExercicioComissao ? inputDataExercicioComissao.value : "";
+    const ehErroMaterial = checkErroMaterial ? checkErroMaterial.checked : false;
 
     if (dataConfirmadaStr && dataCRSCStr) {
         const dataConfirmada = parseDataParaObjeto(dataConfirmadaStr);
         const dataCRSC = parseDataParaObjeto(dataCRSCStr);
 
         if (dataConfirmada && dataCRSC) {
-            // Se as duas datas forem diferentes, exige devolução do processo para a CRSC
+            // Se as duas datas forem diferentes
             if (dataConfirmada.getTime() !== dataCRSC.getTime()) {
-                requerDevolucaoCRSC = true;
-                const textoMensagem = `⚠️ Divergência na data de exercício! Confirmada no sistema: <strong>${formatarDataBr(dataConfirmadaStr)}</strong> | Informada no Parecer CRSC: <strong>${formatarDataBr(dataCRSCStr)}</strong>.`;
                 
-                if (msgDivergenciaData) {
-                    msgDivergenciaData.innerHTML = textoMensagem;
-                    msgDivergenciaData.classList.remove('d-none');
+                // Habilita a exibição da opção de Erro Material Sanável
+                if (boxErroMaterial) boxErroMaterial.classList.remove('d-none');
+
+                if (ehErroMaterial) {
+                    // Trata como Erro Material Sanável (não trava o processo)
+                    const textoMensagem = `ℹ️ Divergência identificada (SIAPE: <strong>${formatarDataBr(dataConfirmadaStr)}</strong> | Parecer: <strong>${formatarDataBr(dataCRSCStr)}</strong>), tratada como <strong>Erro Material Sanável</strong>. Data cadastral retificada de ofício no Parecer SEACAR.`;
+                    
+                    if (msgDivergenciaData) {
+                        msgDivergenciaData.innerHTML = textoMensagem;
+                        msgDivergenciaData.className = "form-text text-warning d-block fw-bold mt-1";
+                    }
+                } else {
+                    // Exige devolução para a comissão
+                    requerDevolucaoCRSC = true;
+                    const textoMensagem = `⚠️ Divergência na data de exercício! Confirmada no sistema: <strong>${formatarDataBr(dataConfirmadaStr)}</strong> | Informada no Parecer CRSC: <strong>${formatarDataBr(dataCRSCStr)}</strong>.`;
+                    
+                    if (msgDivergenciaData) {
+                        msgDivergenciaData.innerHTML = textoMensagem;
+                        msgDivergenciaData.className = "form-text text-danger d-block fw-bold mt-1";
+                    }
+                    
+                    impedimentos.push(`Divergência na data de exercício: data confirmada (${formatarDataBr(dataConfirmadaStr)}) difere do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`);
                 }
-                
-                impedimentos.push(`Divergência na data de exercício: data confirmada (${formatarDataBr(dataConfirmadaStr)}) difere do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`);
-            } else if (msgDivergenciaData) {
-                msgDivergenciaData.classList.add('d-none');
+
+            } else {
+                // Datas iguais
+                if (msgDivergenciaData) msgDivergenciaData.classList.add('d-none');
+                if (boxErroMaterial) {
+                    boxErroMaterial.classList.add('d-none');
+                    if (checkErroMaterial) checkErroMaterial.checked = false;
+                }
             }
         }
+    } else {
+        if (boxErroMaterial) boxErroMaterial.classList.add('d-none');
     }
 
     window.dadosExtraidosPDF.impedimentos = impedimentos;
