@@ -161,6 +161,21 @@
                             <div class="col-md-6">
                                 <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício no Cargo Atual:</label>
                                 <input type="date" id="inputDataExercicio" class="form-control">
+                                <div class="col-md-6">
+    <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício no Cargo Atual:</label>
+    <input type="date" id="inputDataExercicio" class="form-control">
+    <div id="msgDivergenciaData" class="form-text text-danger d-none fw-bold mt-1">
+        ⚠️ Divergência com a data do parecer da comissão!
+    </div>
+    
+    <!-- 👇 ADICIONE ESTE BLOCO LOGO ABAIXO DA MENSAGEM DE DIVERGÊNCIA 👇 -->
+    <div id="boxErroMaterial" class="form-check mt-2 d-none">
+        <input class="form-check-input" type="checkbox" id="checkErroMaterial">
+        <label class="form-check-label small fw-semibold text-dark" for="checkErroMaterial">
+            Tratar divergência como <strong>Erro Material Sanável</strong> (Retificar de ofício no Parecer, sem devolver à CRSC)
+        </label>
+    </div>
+</div>
                                 <div id="msgDivergenciaData" class="form-text text-danger d-none fw-bold mt-1">
                                     ⚠️ Divergência com a data do parecer da comissão!
                                 </div>
