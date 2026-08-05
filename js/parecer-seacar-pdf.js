@@ -120,7 +120,7 @@ function gerarParecerSEACAR(dados) {
             MINISTÉRIO DA EDUCAÇÃO<br>
             UNIVERSIDADE FEDERAL DA FRONTEIRA SUL (UFFS)<br>
             PRÓ-REITORIA DE GESTÃO DE PESSOAS (PROGESP)<br>
-            SECRETARIA DE ADMINISTRAÇÃO E CADASTRO DE PESSOAL (SEACAR)
+            SERVIÇO ESPECIAL DE ACOMPANHAMENTO DA CARREIRA (SEACAR)
         </div>
 
         <div class="titulo-parecer">
