@@ -138,7 +138,8 @@ function sincronizarDadosManuais() {
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     
-    window.dadosExtraidosPDF.dataVigenciaCRSC = inputDataParecer ? inputDataParecer.value : '';
+   window.dadosExtraidosPDF.dataVigenciaCRSC = dataVigenciaInput;
+    window.dadosExtraidosPDF.dataVigencia = dataVigenciaInput; // Redundância para garantir retrocompatibilidade
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataExercicioComissao ? inputDataExercicioComissao.value : '';
     window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : '';
 
