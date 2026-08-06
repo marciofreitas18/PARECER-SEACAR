@@ -15,7 +15,20 @@ window.gerarMinutaPortaria = function(dados) {
 
     // Tratamento de segurança para a Data do Parecer / Vigência Financeira
     let dataVigencia = "XX/XX/XXXX";
-    const dataVigenciaRaw = dados.dataVigenciaCRSC || dados.dataParecer;
+    // Tratamento de segurança para a Data da Vigência da CRSC / Vigência Financeira
+let dataVigencia = "XX/XX/XXXX";
+const dataVigenciaRaw = dados.dataVigenciaCRSC || dados.dataVigencia || dados.dataParecer;
+
+if (dataVigenciaRaw) {
+    if (typeof formatarDataBr === 'function') {
+        dataVigencia = formatarDataBr(dataVigenciaRaw);
+    } else if (dataVigenciaRaw.includes('-')) {
+        const [ano, mes, dia] = dataVigenciaRaw.split('-');
+        dataVigencia = `${dia}/${mes}/${ano}`;
+    } else {
+        dataVigencia = dataVigenciaRaw;
+    }
+}
     if (dataVigenciaRaw) {
         if (typeof formatarDataBr === 'function') {
             dataVigencia = formatarDataBr(dataVigenciaRaw);
