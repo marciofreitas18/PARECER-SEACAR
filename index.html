@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistente RSC-PCCTAE - UFFS</title>
+    <title>Assistente RSC-PCCTAE - UFFS (V2)</title>
 
     <!-- Google Fonts para Fira Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,9 +14,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js e Tesseract.js -->
+    <!-- PDF.js, Tesseract.js e PapaParse (Leitor de CSV) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
@@ -29,7 +30,7 @@
                     <div class="divisor-vertical d-none d-sm-block"></div>
                     <div>
                         <h1>Assistente para geração de parecer e Portaria para o RSC-PCCTAE</h1>
-                        <p class="mb-0">RECONHECIMENTO DE SABERES E COMPETÊNCIAS — PCCTAE- UFFS</p>
+                        <p class="mb-0">RECONHECIMENTO DE SABERES E COMPETÊNCIAS — PCCTAE- UFFS <span class="badge bg-warning text-dark ms-2">V2 - Validação Auto</span></p>
                     </div>
                 </div>
                 <div>
@@ -44,6 +45,17 @@
             <!-- Card Principal (Hero) -->
             <div class="card card-hero-uffs border-0 p-3 p-md-4 mb-4">
                 <div class="card-body">
+
+                    <!-- 0. Upload da Base Cadastral (CSV) -->
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <label for="csvBaseInput" class="form-label fw-bold text-brand-uffs fs-6 mb-1">
+                            📊 0. (Opcional) Carregar Base Cadastral de Servidores (.CSV):
+                        </label>
+                        <input class="form-control form-control-sm rounded-3" type="file" id="csvBaseInput" accept=".csv">
+                        <div id="statusBaseCsv" class="form-text mt-1 text-muted">
+                            💡 Faça o upload da planilha da PROGESP para realizar a conferência e o preenchimento 100% automático dos dados do servidor.
+                        </div>
+                    </div>
                     
                     <!-- 1. Seleção de PDF -->
                     <div class="mb-4">
@@ -51,9 +63,6 @@
                             1. Selecione o Parecer da CRSC (PDF):
                         </label>
                         <input class="form-control form-control-lg rounded-3" type="file" id="pdfCRSCInput" accept=".pdf">
-                        <div class="form-text mt-2">
-                            💡 Faça o upload do arquivo. Caso algum dado não seja extraído automaticamente, preencha-o no painel abaixo.
-                        </div>
                     </div>
 
                     <!-- Status da Leitura -->
@@ -65,7 +74,7 @@
                     <div id="secaoDadosParecer" class="mt-4 p-4 bg-brand-soft border-brand-soft rounded-uffs border shadow-sm d-none">
                         <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                             <h5 class="fw-bold text-brand-uffs mb-0">2. Dados do Parecer da CRSC (Conferência / Edição Manual)</h5>
-                            <span class="badge bg-white text-success border border-success">✍️ Editável</span>
+                            <span id="badgeOrigemDados" class="badge bg-white text-success border border-success">✍️ Editável</span>
                         </div>
                         
                         <div class="row g-3">
@@ -82,7 +91,6 @@
                                 <input type="text" id="inputSiape" class="form-control" placeholder="Ex: 1234567">
                             </div>
 
-                            <!-- Lotação do Servidor -->
                             <div class="col-md-6">
                                 <label for="inputLotacaoServidor" class="form-label fw-semibold">Lotação do Servidor:</label>
                                 <input type="text" id="inputLotacaoServidor" class="form-control" placeholder="Ex: Coordenação Adjunta de Áreas Experimentais">
@@ -98,13 +106,11 @@
                                 <input type="number" step="0.1" id="inputPontuacao" class="form-control" placeholder="Ex: 85.0">
                             </div>
                             
-                            <!-- Data do Parecer / Vigência Financeira -->
                             <div class="col-md-4">
                                 <label for="inputDataParecer" class="form-label fw-semibold">Data do Parecer / Requerimento:</label>
                                 <input type="date" id="inputDataParecer" class="form-control">
                             </div>
 
-                            <!-- Data de Exercício constante no Parecer da CRSC -->
                             <div class="col-md-4">
                                 <label for="inputDataExercicioComissao" class="form-label fw-semibold">Data Exercício (no Parecer da CRSC):</label>
                                 <input type="date" id="inputDataExercicioComissao" class="form-control">
@@ -157,7 +163,6 @@
                         </div>
 
                         <div class="row g-3">
-                            <!-- Data de Exercício no Cargo Atual (Para Análise de Requisito) -->
                             <div class="col-md-6">
                                 <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício no Cargo Atual:</label>
                                 <input type="date" id="inputDataExercicio" class="form-control">
@@ -247,6 +252,7 @@
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
     </script>
+    <script src="js/valida-base-csv.js"></script>
     <script src="js/parse-parecer-crsc.js"></script>
     <script src="js/parecer-seacar-pdf.js"></script>
     <script src="js/minuta-portaria-pdf.js"></script>
