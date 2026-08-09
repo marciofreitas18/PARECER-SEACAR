@@ -1,11 +1,11 @@
 // Matriz de Requisitos da Titulação/IQ Atual do Servidor por Nível Solicitado
 const REQUISITOS_DECRETO_13048 = {
     'RSC-I':   { iqExigido: 0,  descricao: 'Sem ensino fundamental completo (IQ 0%)' },
-    'RSC-II':  { iqExigido: 10,  descricao: 'Ensino fundamental completo (IQ 10%)' },
-    'RSC-III': { iqExigido: 15,  descricao: 'Ensino Médio / Técnico (IQ 15%)' },
-    'RSC-IV':  { iqExigido: 25,  descricao: 'Graduação / Ensino Superior (IQ 25%)' },
-    'RSC-V':   { iqExigido: 30,  descricao: 'Especialização / Lato Sensu (IQ 30%)' },
-    'RSC-VI':  { iqExigido: 52,  descricao: 'Mestrado (IQ 52%)' }
+    'RSC-II':  { iqExigido: 10, descricao: 'Ensino fundamental completo (IQ 10%)' },
+    'RSC-III': { iqExigido: 15, descricao: 'Ensino Médio / Técnico (IQ 15%)' },
+    'RSC-IV':  { iqExigido: 25, descricao: 'Graduação / Ensino Superior (IQ 25%)' },
+    'RSC-V':   { iqExigido: 30, descricao: 'Especialização / Lato Sensu (IQ 30%)' },
+    'RSC-VI':  { iqExigido: 52, descricao: 'Mestrado (IQ 52%)' }
 };
 
 // Objeto global de dados do processo atual
@@ -123,7 +123,7 @@ function inicializarApp() {
 }
 
 /**
- * Coleta TUDO o que está na tela (digitado ou lido pelo PDF) e atualiza o objeto global
+ * Coleta TUDO o que está na tela (digitado, lido pelo PDF ou CSV) e atualiza o objeto global
  */
 function sincronizarDadosManuais() {
     if (!window.dadosExtraidosPDF) {
@@ -133,19 +133,23 @@ function sincronizarDadosManuais() {
     // Captura dos dados da Seção 2
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
     window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
-    window.dadosExtraidosPDF.lotacao = inputLotacaoServidor ? inputLotacaoServidor.value.trim() : '';
+    
+    // Lotação com Fallback
+    const lotacaoInformada = inputLotacaoServidor ? inputLotacaoServidor.value.trim() : '';
+    window.dadosExtraidosPDF.lotacao = lotacaoInformada || window.dadosExtraidosPDF.lotacao || window.dadosExtraidosPDF.unidade || 'Não informada';
+    
     window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
     
-    // CORREÇÃO: Leitura explícita de dataVigenciaInput
+    // Leitura explícita da data de vigência e comissão
     const dataVigenciaInput = inputDataParecer ? inputDataParecer.value : '';
     window.dadosExtraidosPDF.dataVigenciaCRSC = dataVigenciaInput;
     window.dadosExtraidosPDF.dataVigencia = dataVigenciaInput;
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataExercicioComissao ? inputDataExercicioComissao.value : '';
     window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : '';
 
-    // Captura dos dados da Seção 3
+    // Captura dos dados da Seção 3 (Validações, Data de Exercício e Estágio)
     if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
     if (selectRscSolicitado) {
         window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
@@ -153,12 +157,44 @@ function sincronizarDadosManuais() {
         window.dadosExtraidosPDF.nivelRscRomano = valorRsc.includes('-') ? valorRsc.split('-')[1] : valorRsc;
     }
     
-    if (inputDataExercicio) window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
+    // Captura garantida da Data de Exercício
+    if (inputDataExercicio) {
+        window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
+    }
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
     if (checkErroMaterial) window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
 
     executarValidacoesRegras();
 }
+
+/**
+ * Função para carregar e preencher os dados caso venham de uma planilha CSV
+ */
+function carregarDadosCSV(linhaCsv) {
+    if (!linhaCsv) return;
+
+    // Mapeamento inteligente de colunas comuns em planilhas CSV/SISTEMA
+    const lotacaoCsv = linhaCsv['LOTAÇÃO'] || linhaCsv['LOTACAO'] || linhaCsv['UNIDADE'] || linhaCsv['SETOR'] || linhaCsv['CAMPUS'] || '';
+    const dataExercicioCsv = linhaCsv['DATA DE EXERCÍCIO'] || linhaCsv['DATA_EXERCICIO'] || linhaCsv['EXERCICIO'] || linhaCsv['DATA POSSE'] || '';
+    const nomeCsv = linhaCsv['NOME'] || linhaCsv['SERVIDOR'] || linhaCsv['NOME DO SERVIDOR'] || '';
+    const cargoCsv = linhaCsv['CARGO'] || '';
+    const siapeCsv = linhaCsv['SIAPE'] || linhaCsv['MATRICULA'] || '';
+    const processoCsv = linhaCsv['PROCESSO'] || linhaCsv['NÚMERO PROCESSO'] || '';
+    const iqCsv = linhaCsv['IQ'] || linhaCsv['IQ ATUAL'] || '';
+
+    // Preenche os campos do DOM se os elementos existirem
+    if (inputNomeServidor && nomeCsv) inputNomeServidor.value = nomeCsv;
+    if (inputCargoServidor && cargoCsv) inputCargoServidor.value = cargoCsv;
+    if (inputLotacaoServidor && lotacaoCsv) inputLotacaoServidor.value = lotacaoCsv;
+    if (inputSiape && siapeCsv) inputSiape.value = siapeCsv;
+    if (inputNumeroProcesso && processoCsv) inputNumeroProcesso.value = processoCsv;
+    if (selectIQAtual && iqCsv) selectIQAtual.value = iqCsv;
+    if (inputDataExercicio && dataExercicioCsv) inputDataExercicio.value = dataExercicioCsv;
+
+    sincronizarDadosManuais();
+}
+
+window.carregarDadosCSV = carregarDadosCSV;
 
 function limparFormularioProcesso(limparArquivoInput = true) {
     if (limparArquivoInput && pdfCRSCInput) pdfCRSCInput.value = '';
@@ -214,7 +250,12 @@ async function processarArquivoPDF(e) {
             // Popula os campos da Seção 2
             if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
             if (inputCargoServidor) inputCargoServidor.value = dados.cargo || '';
-            if (inputLotacaoServidor) inputLotacaoServidor.value = dados.lotacao || '';
+            
+            // Atribuição com Fallback da Lotação
+            if (inputLotacaoServidor) {
+                inputLotacaoServidor.value = dados.lotacao || dados.unidadeLotacao || dados.unidade || dados.setor || '';
+            }
+            
             if (inputSiape) inputSiape.value = dados.siape || '';
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
@@ -228,7 +269,11 @@ async function processarArquivoPDF(e) {
             // Popula sugestões da Seção 3
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
-            if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicioComissao || dados.dataExercicio || '';
+            
+            // Carrega a Data de Exercício no campo de validação da Seção 3
+            if (inputDataExercicio) {
+                inputDataExercicio.value = dados.dataExercicio || dados.dataExercicioComissao || '';
+            }
 
             if (statusLeitura) {
                 statusLeitura.classList.replace('alert-secondary', 'alert-success');
