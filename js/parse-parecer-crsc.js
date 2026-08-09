@@ -8,7 +8,12 @@ async function parseParecerCRSC(file) {
 
     const statusEl = document.getElementById('statusLeitura');
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjsLib.getDocument({ 
+        data: arrayBuffer,
+        cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+        cMapPacked: true
+    }).promise;
+    
     let textoCompleto = '';
 
     // 1. Extração do texto do PDF (preservando quebras para leitura estruturada)
@@ -59,8 +64,8 @@ async function parseParecerCRSC(file) {
         siape: extrairSiape(textoLimpo),
         cargo: extrairCargoServidor(textoLimpo),
         lotacao: extrairLotacao(textoLimpo),
-        dataExercicioComissao: extrairDataExercicio(textoLimpo), // Data no cargo (Para conferência/requisito)
-        dataVigenciaCRSC: extrairDataParecer(textoLimpo),       // Data do parecer (Para vigência financeira)
+        dataExercicioComissao: extrairDataExercicio(textoLimpo),
+        dataVigenciaCRSC: extrairDataParecer(textoLimpo),
         nivelSolicitado: extrairNivelRSC(textoLimpo),
         pontuacaoObtida: extrairPontos(textoLimpo),
         numeroProcesso: extrairProcesso(textoLimpo)
@@ -76,7 +81,7 @@ function normalizarTexto(texto) {
 }
 
 /**
- * Busca pelo nome do servidor após "Servidor(a):"
+ * Busca pelo nome do servidor
  */
 function extrairNomeServidor(texto) {
     const regexes = [
@@ -93,7 +98,7 @@ function extrairNomeServidor(texto) {
 }
 
 /**
- * Busca pelo Cargo após "Cargo:"
+ * Busca pelo Cargo
  */
 function extrairCargoServidor(texto) {
     const regexes = [
@@ -110,7 +115,7 @@ function extrairCargoServidor(texto) {
 }
 
 /**
- * Busca pela Lotação do servidor
+ * Busca pela Lotação
  */
 function extrairLotacao(texto) {
     const regexes = [
@@ -144,7 +149,7 @@ function extrairSiape(texto) {
 }
 
 /**
- * Busca estritamente pela data de exercício no cargo atual
+ * Busca pela data de exercício no cargo atual
  */
 function extrairDataExercicio(texto) {
     const reg = /(?:Data\s+de\s+início\s+do\s+exercício\s+no\s+cargo\s+atual|Início\s+no\s+cargo|Exercício\s+no\s+cargo)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i;
@@ -159,7 +164,7 @@ function extrairDataExercicio(texto) {
 }
 
 /**
- * Busca pela Data do Parecer / Requerimento / Emissão
+ * Busca pela Data do Parecer
  */
 function extrairDataParecer(texto) {
     const regexes = [
@@ -179,7 +184,7 @@ function extrairDataParecer(texto) {
 }
 
 /**
- * Busca por "Pontuação obtida:"
+ * Busca pela pontuação
  */
 function extrairPontos(texto) {
     const reg = /Pontuação\s+obtida[\s:]*([0-9]+(?:[.,][0-9]+)?)/i;
@@ -191,7 +196,7 @@ function extrairPontos(texto) {
 }
 
 /**
- * Busca por "Nível de RSC requerido:"
+ * Busca pelo Nível de RSC
  */
 function extrairNivelRSC(texto) {
     const reg = /(?:Nível\s+de\s+RSC\s+requerido|Nível\s+concedido)[\s:]*(?:RSC\s*[-–]?\s*PCCTAE|RSC)?\s*([I|V|X]+)/i;
@@ -203,7 +208,7 @@ function extrairNivelRSC(texto) {
 }
 
 /**
- * Busca pelo Número do Processo (23205.XXXXXX/2026-XX)
+ * Busca pelo Número do Processo
  */
 function extrairProcesso(texto) {
     const match = texto.match(/23205[\s.]*[0-9]{6}[\/\s]*[0-9]{4}[-.\s]*[0-9]{2}/i);
@@ -219,6 +224,7 @@ function limpaTextoCapturado(txt) {
     return txt
         .replace(/[\n\r]/g, ' ')
         .split(/(?:Matrícula|SIAPE|Processo|CPF|Cargo|Lotação|Nível|Classe|UF|Data)/i)[0]
+        .replace(/\s+/g, ' ')
         .trim();
 }
 
