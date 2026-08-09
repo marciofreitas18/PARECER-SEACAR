@@ -16,6 +16,7 @@ function carregarBaseCSV(event) {
     Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
+        encoding: "UTF-8",
         complete: function(results) {
             baseServidoresCSV = results.data;
             if (statusText) {
@@ -33,43 +34,66 @@ function carregarBaseCSV(event) {
     });
 }
 
-// Função chamada pelo leitor do PDF após extrair o SIAPE
+// Converte datas formato BR (DD/MM/AAAA) para ISO (AAAA-MM-DD) para compatibilidade com <input type="date">
+function formatarDataParaInput(dataStr) {
+    if (!dataStr) return '';
+    const limpa = dataStr.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(limpa)) return limpa; // Já em formato ISO
+    
+    const partes = limpa.split('/');
+    if (partes.length === 3) {
+        const [dia, mes, ano] = partes;
+        return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+    }
+    return limpa;
+}
+
+// Função para buscar valores nas linhas independente de espaços extras nos cabeçalhos
+function obterValorColuna(row, nomesPossiveis) {
+    const chave = Object.keys(row).find(k => 
+        nomesPossiveis.some(nome => k.trim().toUpperCase() === nome.toUpperCase())
+    );
+    return chave ? row[chave] : null;
+}
+
+// Função chamada após a extração do SIAPE do PDF
 function cruzarDadosComBaseCSV(siapeExtraido) {
     if (!baseServidoresCSV || baseServidoresCSV.length === 0 || !siapeExtraido) {
         return false;
     }
 
-    const siapeLimpo = siapeExtraido.replace(/\D/g, '');
+    const siapeLimpo = siapeExtraido.toString().replace(/\D/g, '');
     
     // Procura na planilha pelo SIAPE
     const servidorEncontrado = baseServidoresCSV.find(row => {
-        const siapeRow = (row.SIAPE || row.siape || row.Siape || '').replace(/\D/g, '');
-        return siapeRow === siapeLimpo;
+        const valSiape = obterValorColuna(row, ['SIAPE', 'MATRICULA', 'MATRICULA_SIAPE']);
+        return valSiape ? valSiape.toString().replace(/\D/g, '') === siapeLimpo : false;
     });
 
     if (servidorEncontrado) {
-        // Mapeia e auto-preenche os campos
-        if (servidorEncontrado.Nome || servidorEncontrado.NOME) {
-            document.getElementById('inputNomeServidor').value = servidorEncontrado.Nome || servidorEncontrado.NOME;
-        }
-        if (servidorEncontrado.Cargo || servidorEncontrado.CARGO) {
-            document.getElementById('inputCargo').value = servidorEncontrado.Cargo || servidorEncontrado.CARGO;
-        }
-        if (servidorEncontrado.Lotacao || servidorEncontrado.LOTACAO) {
-            document.getElementById('inputLotacaoServidor').value = servidorEncontrado.Lotacao || servidorEncontrado.LOTACAO;
-        }
-        if (servidorEncontrado.Data_Exercicio || servidorEncontrado.DATA_EXERCICIO) {
-            document.getElementById('inputDataExercicio').value = servidorEncontrado.Data_Exercicio || servidorEncontrado.DATA_EXERCICIO;
+        const nome = obterValorColuna(servidorEncontrado, ['NOME', 'NOME_SERVIDOR', 'SERVIDOR']);
+        const cargo = obterValorColuna(servidorEncontrado, ['CARGO', 'CARGO_EFETIVO']);
+        const lotacao = obterValorColuna(servidorEncontrado, ['LOTACAO', 'UNIDADE', 'CAMPUS']);
+        const dataExercicio = obterValorColuna(servidorEncontrado, ['DATA_EXERCICIO', 'DATA_EXERCICIO_CARGO', 'EXERCICIO']);
+        const titulacao = obterValorColuna(servidorEncontrado, ['TITULACAO_IQ', 'TITULACAO', 'IQ']);
+
+        if (nome) document.getElementById('inputNomeServidor').value = nome.trim();
+        if (cargo) document.getElementById('inputCargo').value = cargo.trim();
+        if (lotacao) document.getElementById('inputLotacaoServidor').value = lotacao.trim();
+        if (dataExercicio) {
+            document.getElementById('inputDataExercicio').value = formatarDataParaInput(dataExercicio);
         }
 
         // Mapeamento automático de Titulação/IQ
-        const iqPlanilha = (servidorEncontrado.Titulacao_IQ || servidorEncontrado.TITULACAO || '').toLowerCase();
-        const selectIQ = document.getElementById('selectIQAtual');
-        
-        if (iqPlanilha.includes('médio') || iqPlanilha.includes('medio') || iqPlanilha.includes('técnico')) selectIQ.value = '0';
-        else if (iqPlanilha.includes('gradua')) selectIQ.value = '25';
-        else if (iqPlanilha.includes('especializa')) selectIQ.value = '30';
-        else if (iqPlanilha.includes('mestra')) selectIQ.value = '52';
+        if (titulacao) {
+            const iqPlanilha = titulacao.toLowerCase();
+            const selectIQ = document.getElementById('selectIQAtual');
+            
+            if (iqPlanilha.includes('médio') || iqPlanilha.includes('medio') || iqPlanilha.includes('técnico')) selectIQ.value = '0';
+            else if (iqPlanilha.includes('gradua')) selectIQ.value = '25';
+            else if (iqPlanilha.includes('especializa')) selectIQ.value = '30';
+            else if (iqPlanilha.includes('mestra')) selectIQ.value = '52';
+        }
 
         const badge = document.getElementById('badgeOrigemDados');
         if (badge) {
