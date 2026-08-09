@@ -11,14 +11,24 @@ function gerarParecerSEACAR(dados) {
     const dataAtualExtenso = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     const dataHojeFormatada = new Date().toLocaleDateString('pt-BR');
 
-    // Mapeamento e Tratamento das Variáveis do Modelo
-    const processo = dados.numeroProcesso || '23205.XXXXXX/2026-XX';
-    const nome = dados.nomeServidor ? dados.nomeServidor.trim().toUpperCase() : (dados.nome ? dados.nome.trim().toUpperCase() : 'XXXXXXXXXXXXXXXXXXXX');
-    const siape = dados.siape || 'XXXXXXX';
-    const cargo = dados.cargo || 'XXXXXXXXXXXXXXX';
-    const lotacao = dados.lotacao || 'XXXXXXXXXXX';
-    const pontuacaoObtida = dados.pontuacaoObtida || '0.0';
-    const iqAtual = dados.iqAtual || '0';
+    // Mapeamento das Variáveis com Leitura Automática de Fallbacks da Planilha CSV
+    const processo = dados.numeroProcesso || dados.processo || '23205.XXXXXX/2026-XX';
+    const nome = dados.nomeServidor ? dados.nomeServidor.trim().toUpperCase() : (dados.nome ? dados.nome.trim().toUpperCase() : 'SERVIDOR NÃO INFORMADO');
+    const siape = dados.siape || dados.matricula || 'Não informada';
+    const cargo = dados.cargo || 'Cargo não informado';
+    
+    // Busca Inteligente da Lotação (Tenta várias colunas comuns de planilhas/SIPAC)
+    const lotacao = (
+        dados.lotacao || 
+        dados.unidadeLotacao || 
+        dados.unidade || 
+        dados.setor || 
+        dados.campus || 
+        'Não informada'
+    ).trim().toUpperCase();
+
+    const pontuacaoObtida = dados.pontuacaoObtida || dados.pontuacao || '0.0';
+    const iqAtual = dados.iqAtual || dados.iq || '0';
     
     // Nível do RSC (Ex: RSC-PCCTAE-V ou RSC-V)
     let nivel = dados.nivelSolicitado || 'RSC-V';
@@ -26,7 +36,7 @@ function gerarParecerSEACAR(dados) {
         nivel = `RSC-${dados.nivelRscRomano}`;
     }
 
-    // Mapa Correto dos Percentuais do IQ por Nível de RSC-PCCTAE
+    // Tabela Oficial de Percentuais do IQ por Nível de RSC-PCCTAE
     const mapaPercentuaisIQ = {
         'RSC-I': '15%',    'RSC-PCCTAE-I': '15%',
         'RSC-II': '25%',   'RSC-PCCTAE-II': '25%',
@@ -46,16 +56,18 @@ function gerarParecerSEACAR(dados) {
             ? (dados.campusCRSC.toLowerCase() === 'reitoria' ? 'CRSC Reitoria' : `CRSC Campus ${dados.campusCRSC}`)
             : 'Comissão de Reconhecimento de Saberes e Competências (CRSC)');
 
-    // Tratamento e Formatação das Datas
+    // TRATAMENTO DA DATA DE EXERCÍCIO (Extraída do CSV ou Sistema)
+    const dataExercicioRaw = dados.dataExercicio || dados.dataPosse || dados.dataIngresso || dados.exercicio;
+    let dataExercicio = "Não informada";
+    if (dataExercicioRaw) {
+        dataExercicio = typeof formatarDataBr === 'function' ? formatarDataBr(dataExercicioRaw) : dataExercicioRaw;
+    }
+
+    // TRATAMENTO DA DATA DE VIGÊNCIA / PARECER CRSC
     let dataVigencia = dataHojeFormatada;
     const dataVigenciaRaw = dados.dataVigenciaCRSC || dados.dataParecer || dados.dataVigencia;
     if (dataVigenciaRaw) {
         dataVigencia = typeof formatarDataBr === 'function' ? formatarDataBr(dataVigenciaRaw) : dataVigenciaRaw;
-    }
-
-    let dataExercicio = "Não informada";
-    if (dados.dataExercicio) {
-        dataExercicio = typeof formatarDataBr === 'function' ? formatarDataBr(dados.dataExercicio) : dados.dataExercicio;
     }
 
     let dataExercicioComissao = "Não informada";
@@ -223,5 +235,5 @@ function gerarParecerSEACAR(dados) {
     document.body.removeChild(link);
 }
 
-// Vinculação com o escopo global do navegador
+// Vinculação global
 window.gerarParecerSEACAR = gerarParecerSEACAR;
