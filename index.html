@@ -51,16 +51,18 @@
             <div class="card card-hero-uffs border-0 p-3 p-md-4 mb-4">
                 <div class="card-body">
 
-                    <!-- 0. Upload da Base Cadastral (CSV) -->
-                    <div class="mb-4 p-3 bg-light rounded-3 border">
-                        <label for="csvBaseInput" class="form-label fw-bold text-brand-uffs fs-6 mb-1">
-                            📊 0. (Opcional) Carregar Base Cadastral de Servidores (.CSV):
-                        </label>
-                        <input class="form-control form-control-sm rounded-3" type="file" id="csvBaseInput" accept=".csv">
-                        <div id="statusBaseCsv" class="form-text mt-1 text-muted">
-                            💡 Faça o upload da planilha da PROGESP para realizar a conferência e o preenchimento 100% automático dos dados do servidor.
-                        </div>
-                    </div>
+                   <!-- 0. Carregar Base Cadastral de Servidores (.CSV) -->
+<div class="card mb-4 border-success">
+    <div class="card-body bg-light">
+        <label for="csvServidoresInput" class="form-label fw-bold text-success">
+            📊 0. (Opcional) Carregar Base Cadastral de Servidores (.CSV):
+        </label>
+        <input type="file" id="csvServidoresInput" class="form-control" accept=".csv">
+        <div id="statusCSV" class="form-text text-success fw-bold d-none mt-2">
+            ✅ Base cadastral carregada com sucesso!
+        </div>
+    </div>
+</div>
                     
                     <!-- 1. Seleção de PDF -->
                     <div class="mb-4">
