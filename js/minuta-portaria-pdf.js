@@ -6,29 +6,30 @@ window.gerarMinutaPortaria = function(dados) {
     const siape = dados.siape || "SIAPE";
     const processo = dados.numeroProcesso || "23205.XXXXXX/2026-XX";
 
-    // Tratamento padronizado para o nível RSC
-    let nivel = dados.nivelSolicitado || "RSC-PCCTAE-X";
+    // Mapeamento e Tratamento Padronizado do Nível RSC e Percentual de IQ
+    let nivel = dados.nivelSolicitado || "RSC-PCCTAE-V";
     if (nivel && !nivel.startsWith("RSC-PCCTAE")) {
         const nivelRomano = nivel.includes('-') ? nivel.split('-')[1] : nivel;
         nivel = `RSC-PCCTAE-${nivelRomano}`;
     }
 
-    // Tratamento de segurança para a Data do Parecer / Vigência Financeira
-    let dataVigencia = "XX/XX/XXXX";
-    // Tratamento de segurança para a Data da Vigência da CRSC / Vigência Financeira
-let dataVigencia = "XX/XX/XXXX";
-const dataVigenciaRaw = dados.dataVigenciaCRSC || dados.dataVigencia || dados.dataParecer;
+    // Tabela Oficial de Percentuais de IQ por Nível de RSC-PCCTAE (Decreto nº 13.048/2026)
+    const mapaPercentuaisIQ = {
+        'RSC-I': '15%',    'RSC-PCCTAE-I': '15%',
+        'RSC-II': '25%',   'RSC-PCCTAE-II': '25%',
+        'RSC-III': '30%',  'RSC-PCCTAE-III': '30%',
+        'RSC-IV': '52%',   'RSC-PCCTAE-IV': '52%',
+        'RSC-V': '75%',    'RSC-PCCTAE-V': '75%',
+        'RSC-VI': '75%',   'RSC-PCCTAE-VI': '75%'
+    };
 
-if (dataVigenciaRaw) {
-    if (typeof formatarDataBr === 'function') {
-        dataVigencia = formatarDataBr(dataVigenciaRaw);
-    } else if (dataVigenciaRaw.includes('-')) {
-        const [ano, mes, dia] = dataVigenciaRaw.split('-');
-        dataVigencia = `${dia}/${mes}/${ano}`;
-    } else {
-        dataVigencia = dataVigenciaRaw;
-    }
-}
+    const percentualRSC = dados.percentualRsc || mapaPercentuaisIQ[nivel] || (dados.nivelRscRomano ? mapaPercentuaisIQ[`RSC-${dados.nivelRscRomano}`] : '');
+    const textoPercentual = percentualRSC ? ` (${percentualRSC})` : '';
+
+    // Tratamento da Data de Vigência Financeira
+    let dataVigencia = "XX/XX/XXXX";
+    const dataVigenciaRaw = dados.dataVigenciaCRSC || dados.dataVigencia || dados.dataParecer;
+
     if (dataVigenciaRaw) {
         if (typeof formatarDataBr === 'function') {
             dataVigencia = formatarDataBr(dataVigenciaRaw);
@@ -39,8 +40,8 @@ if (dataVigenciaRaw) {
             dataVigencia = dataVigenciaRaw;
         }
     }
-    
-    // Captura a CRSC selecionada na tela ou define o fallback padrão
+
+    // Captura a CRSC selecionada
     const comissaoCRSC = (dados.unidadeCRSC && dados.unidadeCRSC.trim() !== "") 
         ? dados.unidadeCRSC 
         : "Comissão de Reconhecimento de Saberes e Competências (CRSC)";
@@ -57,7 +58,7 @@ if (dataVigenciaRaw) {
             <br>
             <p style="text-align: justify;"><strong>RESOLVE:</strong></p>
             <br>
-            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, considerando o parecer favorável da <strong>${comissaoCRSC}</strong> constante no Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataVigencia}</strong>.</p>
+            <p style="text-align: justify;"><strong>Art. 1º</strong> CONCEDER o Reconhecimento de Saberes e Competências (<strong>${nivel}${textoPercentual}</strong>) ao(à) servidor(a) <strong>${nome}</strong>, ocupante do cargo de <strong>${cargo}</strong>, Matrícula SIAPE nº <strong>${siape}</strong>, considerando o parecer favorável da <strong>${comissaoCRSC}</strong> constante no Processo nº <strong>${processo}</strong>, com efeitos financeiros a contar de <strong>${dataVigencia}</strong>.</p>
             <br>
             <p style="text-align: justify;"><strong>Art. 2º</strong> Esta Portaria entra em vigor na data de sua publicação.</p>
         </body>
