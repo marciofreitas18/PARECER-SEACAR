@@ -136,15 +136,30 @@ function inicializarApp() {
 }
 
 /**
- * Lê e processa a planilha .CSV de servidores
+/**
+ * Lê e processa a planilha .CSV de servidores garantindo a acentuação correta (UTF-8 / Windows-1252 / ISO-8859-1)
  */
 function processarArquivoCSV(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
+    
+    // Leitura como ArrayBuffer para decodificar com charset adequado
     reader.onload = function(evt) {
-        const texto = evt.target.result;
+        const buffer = evt.target.result;
+        let texto = "";
+
+        try {
+            // Tenta decodificar como UTF-8 sem tolerar erros de caractere inválido
+            const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+            texto = utf8Decoder.decode(buffer);
+        } catch (err) {
+            // Se falhar (comum em CSVs gerados pelo Excel em Português), decodifica como ISO-8859-1 (Latin-1)
+            const latinDecoder = new TextDecoder('iso-8859-1');
+            texto = latinDecoder.decode(buffer);
+        }
+
         window.baseServidoresCSV = converterCSVParaArray(texto);
 
         if (statusCSV) {
@@ -155,14 +170,18 @@ function processarArquivoCSV(e) {
         // Tenta cruzar os dados caso um PDF ou servidor já esteja na tela
         buscarEPreencherDadosCSV();
     };
-    reader.readAsText(file, 'UTF-8');
+
+    reader.readAsArrayBuffer(file);
 }
 
 /**
- * Converte o texto CSV em Array de Objetos tratando separadores (, ou ;)
+/**
+ * Converte o texto CSV em Array de Objetos tratando separadores (, ou ;) e removendo o BOM de acentuação
  */
 function converterCSVParaArray(textoCsv) {
-    const linhas = textoCsv.split(/\r\n|\n/);
+    // Remove o caractere invisível BOM (\uFEFF) caso exista
+    const textoLimpo = textoCsv.replace(/^\uFEFF/, '');
+    const linhas = textoLimpo.split(/\r\n|\n/);
     if (linhas.length === 0) return [];
 
     const separador = linhas[0].includes(';') ? ';' : ',';
