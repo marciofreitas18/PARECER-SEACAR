@@ -38,11 +38,11 @@ function gerarParecerSEACAR(dados) {
 
     // Tabela Oficial de Percentuais do IQ por Nível de RSC-PCCTAE
     const mapaPercentuaisIQ = {
-        'RSC-I': '15%',    'RSC-PCCTAE-I': '15%',
-        'RSC-II': '25%',   'RSC-PCCTAE-II': '25%',
-        'RSC-III': '30%',  'RSC-PCCTAE-III': '30%',
-        'RSC-IV': '52%',   'RSC-PCCTAE-IV': '52%',
-        'RSC-V': '75%',    'RSC-PCCTAE-V': '75%',
+        'RSC-I': '10%',    'RSC-PCCTAE-I': '10%',
+        'RSC-II': '15%',   'RSC-PCCTAE-II': '15%',
+        'RSC-III': '25%',  'RSC-PCCTAE-III': '25%',
+        'RSC-IV': '30%',   'RSC-PCCTAE-IV': '30%',
+        'RSC-V': '52%',    'RSC-PCCTAE-V': '52%',
         'RSC-VI': '75%',   'RSC-PCCTAE-VI': '75%'
     };
 
