@@ -166,10 +166,11 @@ function extrairDataExercicio(texto) {
 /**
  * Busca pela Data do Parecer
  */
-function extrairDataParecer(texto) {
+function extrairDataVigencia(texto) {
     const regexes = [
-        /(?:Data\s+do\s+Parecer|Data\s+do\s+Vigência\s+da\s+Concessão|Chapecó)[\s,:-]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
-        /([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/
+        /(?:Vigência\s+da\s+Concessão|Efeitos\s+financeiros\s+a\s+partir\s+de|Vigência)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /(?:Data\s+do\s+requerimento|Requerido\s+em|A\s+partir\s+de)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /vigência\s+em[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i
     ];
     for (const reg of regexes) {
         const match = texto.match(reg);
@@ -180,7 +181,7 @@ function extrairDataParecer(texto) {
             }
         }
     }
-    return '';
+    return ''; // Se não achar o rótulo de vigência, retorna vazio em vez de pegar a primeira data do texto
 }
 
 /**
