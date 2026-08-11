@@ -65,7 +65,8 @@ async function parseParecerCRSC(file) {
         cargo: extrairCargoServidor(textoLimpo),
         lotacao: extrairLotacao(textoLimpo),
         dataExercicioComissao: extrairDataExercicio(textoLimpo),
-        dataVigenciaCRSC: extrairDataParecer(textoLimpo),
+        dataParecer: extrairDataParecer(textoLimpo),
+        dataVigenciaCRSC: extrairDataVigencia(textoLimpo),
         nivelSolicitado: extrairNivelRSC(textoLimpo),
         pontuacaoObtida: extrairPontos(textoLimpo),
         numeroProcesso: extrairProcesso(textoLimpo)
@@ -85,7 +86,7 @@ function normalizarTexto(texto) {
  */
 function extrairNomeServidor(texto) {
     const regexes = [
-        /Servidor\(a\)[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|Data|\n|$))/i,
+        /Servidor\(a\)[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})(?=\s*(?:Matrícula|SIAPE|Cargo|Lotação|\n|$))/i,
         /(?:Interessado|Interessada|Requerente)[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,60})/i
     ];
     for (const reg of regexes) {
@@ -102,7 +103,7 @@ function extrairNomeServidor(texto) {
  */
 function extrairCargoServidor(texto) {
     const regexes = [
-        /Cargo[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/–-]{4,50})(?=\s*(?:Lotação|Data|Matrícula|SIAPE|Nível|\n|$))/i,
+        /Cargo[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/–-]{4,50})(?=\s*(?:Lotação|Matrícula|SIAPE|Nível|\n|$))/i,
         /ocupante\s+do\s+cargo\s+de[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/–-]{4,50})/i
     ];
     for (const reg of regexes) {
@@ -119,7 +120,7 @@ function extrairCargoServidor(texto) {
  */
 function extrairLotacao(texto) {
     const regexes = [
-        /Lotação[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç0-9\s\/–-]{3,80})(?=\s*(?:Data|Matrícula|SIAPE|Nível|Pontuação|Processo|\n|$))/i,
+        /Lotação[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç0-9\s\/–-]{3,80})(?=\s*(?:Matrícula|SIAPE|Nível|Pontuação|Processo|\n|$))/i,
         /Lotação\s+do\s+Servidor[\s:]*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç0-9\s\/–-]{3,80})/i
     ];
     for (const reg of regexes) {
@@ -149,7 +150,7 @@ function extrairSiape(texto) {
 }
 
 /**
- * Busca pela data de exercício no cargo atual
+ * Busca pela data de início de exercício no cargo
  */
 function extrairDataExercicio(texto) {
     const reg = /(?:Data\s+de\s+início\s+do\s+exercício\s+no\s+cargo\s+atual|Início\s+no\s+cargo|Exercício\s+no\s+cargo)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i;
@@ -164,12 +165,31 @@ function extrairDataExercicio(texto) {
 }
 
 /**
- * Busca pela Data do Parecer
+ * Busca pela Data do Parecer (Data da assinatura / Emissão do Parecer)
+ */
+function extrairDataParecer(texto) {
+    const regexes = [
+        /(?:Data\s+do\s+Parecer|Parecer\s+emitido\s+em|Chapecó[\s,–-]*)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /Chapecó-SC,\s*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i
+    ];
+    for (const reg of regexes) {
+        const match = texto.match(reg);
+        if (match && match[1]) {
+            const partes = match[1].replace(/[\.-]/g, '/').split('/');
+            if (partes.length === 3) {
+                return `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+        }
+    }
+    return '';
+}
+
+/**
+ * Busca pela Data de Vigência dos efeitos financeiros
  */
 function extrairDataVigencia(texto) {
     const regexes = [
-        /(?:Vigência\s+da\s+Concessão|Efeitos\s+financeiros\s+a\s+partir\s+de|Vigência)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
-        /(?:Data\s+do\s+requerimento|Requerido\s+em|A\s+partir\s+de)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /(?:Vigência\s+da\s+Concessão|Efeitos\s+financeiros\s+a\s+partir\s+de|Data\s+do\s+requerimento)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
         /vigência\s+em[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i
     ];
     for (const reg of regexes) {
@@ -181,7 +201,7 @@ function extrairDataVigencia(texto) {
             }
         }
     }
-    return ''; // Se não achar o rótulo de vigência, retorna vazio em vez de pegar a primeira data do texto
+    return '';
 }
 
 /**
