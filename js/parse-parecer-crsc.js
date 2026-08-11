@@ -168,7 +168,7 @@ function extrairDataExercicio(texto) {
  */
 function extrairDataParecer(texto) {
     const regexes = [
-        /(?:Data\s+do\s+Parecer|Data\s+do\s+requerimento|Vigência\s+da\s+Concessão|Chapecó)[\s,:-]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /(?:Data\s+do\s+Parecer|Data\s+do\s+Vigência\s+da\s+Concessão|Chapecó)[\s,:-]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
         /([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/
     ];
     for (const reg of regexes) {
