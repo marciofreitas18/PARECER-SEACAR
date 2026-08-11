@@ -65,7 +65,6 @@ async function parseParecerCRSC(file) {
         cargo: extrairCargoServidor(textoLimpo),
         lotacao: extrairLotacao(textoLimpo),
         dataExercicioComissao: extrairDataExercicio(textoLimpo),
-        dataParecer: extrairDataParecer(textoLimpo),
         dataVigenciaCRSC: extrairDataVigencia(textoLimpo),
         nivelSolicitado: extrairNivelRSC(textoLimpo),
         pontuacaoObtida: extrairPontos(textoLimpo),
@@ -165,32 +164,13 @@ function extrairDataExercicio(texto) {
 }
 
 /**
- * Busca pela Data do Parecer (Data da assinatura / Emissão do Parecer)
- */
-function extrairDataParecer(texto) {
-    const regexes = [
-        /(?:Data\s+do\s+Parecer|Parecer\s+emitido\s+em|Chapecó[\s,–-]*)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
-        /Chapecó-SC,\s*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i
-    ];
-    for (const reg of regexes) {
-        const match = texto.match(reg);
-        if (match && match[1]) {
-            const partes = match[1].replace(/[\.-]/g, '/').split('/');
-            if (partes.length === 3) {
-                return `${partes[2]}-${partes[1]}-${partes[0]}`;
-            }
-        }
-    }
-    return '';
-}
-
-/**
- * Busca pela Data de Vigência dos efeitos financeiros
+ * Busca pela Data de Vigência dos efeitos financeiros / data do requerimento
  */
 function extrairDataVigencia(texto) {
     const regexes = [
         /(?:Vigência\s+da\s+Concessão|Efeitos\s+financeiros\s+a\s+partir\s+de|Data\s+do\s+requerimento)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
-        /vigência\s+em[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i
+        /vigência\s+em[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        /([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/
     ];
     for (const reg of regexes) {
         const match = texto.match(reg);
