@@ -491,6 +491,10 @@ function formatarDataBr(dataIso) {
 function salvarProcessoNoHistorico(dados) {
     if (!dados || (!dados.numeroProcesso && !dados.nomeServidor)) return;
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
+
+    const dataVigenciaRaw = inputDataParecer ? inputDataParecer.value : (dados.dataVigenciaCRSC || dados.dataVigencia || '');
+    const dataVigenciaFormatada = dataVigenciaRaw ? formatarDataBr(dataVigenciaRaw) : '--';
+
     const item = {
         dataHora: new Date().toLocaleString('pt-BR'),
         processo: dados.numeroProcesso || '--',
@@ -499,6 +503,7 @@ function salvarProcessoNoHistorico(dados) {
         lotacao: dados.lotacao || '--',
         siape: dados.siape || '--',
         nivel: dados.nivelSolicitado || '--',
+        vigencia: dataVigenciaFormatada,
         resultado: dados.resultado || 'ANALISADO'
     };
 
@@ -515,7 +520,7 @@ function carregarHistoricoTabela() {
     tabelaHistorico.innerHTML = '';
 
     if (historico.length === 0) {
-        tabelaHistorico.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Nenhum processo analisado localmente.</td></tr>';
+        tabelaHistorico.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Nenhum processo analisado localmente.</td></tr>';
         return;
     }
 
@@ -530,6 +535,7 @@ function carregarHistoricoTabela() {
             <td>${item.lotacao}</td>
             <td>${item.siape}</td>
             <td>${item.nivel}</td>
+            <td>${item.vigencia || '--'}</td>
             <td><span class="badge ${badgeClass}">${item.resultado}</span></td>
         `;
         tabelaHistorico.appendChild(tr);
@@ -540,9 +546,9 @@ function exportarHistoricoCSV() {
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     if (historico.length === 0) return alert("Não há dados para exportar.");
 
-    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Nivel,Resultado\n";
+    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Nivel,Vigencia,Resultado\n";
     historico.forEach(i => {
-        csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.cargo}","${i.lotacao}","${i.siape}","${i.nivel}","${i.resultado}"\n`;
+        csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.cargo}","${i.lotacao}","${i.siape}","${i.nivel}","${i.vigencia || '--'}","${i.resultado}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
