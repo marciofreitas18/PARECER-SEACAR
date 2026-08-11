@@ -136,8 +136,7 @@ function inicializarApp() {
 }
 
 /**
-/**
- * Lê e processa a planilha .CSV de servidores garantindo a acentuação correta (UTF-8 / Windows-1252 / ISO-8859-1)
+ * Lê e processa a planilha .CSV de servidores garantindo a acentuação correta
  */
 function processarArquivoCSV(e) {
     const file = e.target.files[0];
@@ -145,17 +144,14 @@ function processarArquivoCSV(e) {
 
     const reader = new FileReader();
     
-    // Leitura como ArrayBuffer para decodificar com charset adequado
     reader.onload = function(evt) {
         const buffer = evt.target.result;
         let texto = "";
 
         try {
-            // Tenta decodificar como UTF-8 sem tolerar erros de caractere inválido
             const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
             texto = utf8Decoder.decode(buffer);
         } catch (err) {
-            // Se falhar (comum em CSVs gerados pelo Excel em Português), decodifica como ISO-8859-1 (Latin-1)
             const latinDecoder = new TextDecoder('iso-8859-1');
             texto = latinDecoder.decode(buffer);
         }
@@ -167,7 +163,6 @@ function processarArquivoCSV(e) {
             statusCSV.innerHTML = `✅ Base cadastral carregada com sucesso! (${window.baseServidoresCSV.length} registros cadastrados).`;
         }
 
-        // Tenta cruzar os dados caso um PDF ou servidor já esteja na tela
         buscarEPreencherDadosCSV();
     };
 
@@ -175,11 +170,9 @@ function processarArquivoCSV(e) {
 }
 
 /**
-/**
- * Converte o texto CSV em Array de Objetos tratando separadores (, ou ;) e removendo o BOM de acentuação
+ * Converte o texto CSV em Array de Objetos tratando separadores (, ou ;)
  */
 function converterCSVParaArray(textoCsv) {
-    // Remove o caractere invisível BOM (\uFEFF) caso exista
     const textoLimpo = textoCsv.replace(/^\uFEFF/, '');
     const linhas = textoLimpo.split(/\r\n|\n/);
     if (linhas.length === 0) return [];
@@ -220,14 +213,12 @@ function buscarEPreencherDadosCSV() {
     });
 
     if (servidorEncontrado) {
-        // Lotação
         const lotacaoCsv = servidorEncontrado['LOTAÇÃO'] || servidorEncontrado['LOTACAO'] || servidorEncontrado['UNIDADE'] || servidorEncontrado['SETOR'] || servidorEncontrado['CAMPUS'];
         if (lotacaoCsv && inputLotacaoServidor) {
             inputLotacaoServidor.value = lotacaoCsv;
             window.dadosExtraidosPDF.lotacao = lotacaoCsv;
         }
 
-        // Data de Exercício
         const dataExercicioCsv = servidorEncontrado['DATA DE EXERCÍCIO'] || servidorEncontrado['DATA_EXERCICIO'] || servidorEncontrado['EXERCICIO'] || servidorEncontrado['DATA POSSE'] || servidorEncontrado['POSSE'];
         if (dataExercicioCsv && inputDataExercicio) {
             if (dataExercicioCsv.includes('/')) {
@@ -251,11 +242,9 @@ function sincronizarDadosManuais() {
         window.dadosExtraidosPDF = {};
     }
 
-    // Captura dos dados da Seção 2
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
     window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
 
-    // Lotação
     const lotacaoInformada = inputLotacaoServidor ? inputLotacaoServidor.value.trim() : '';
     window.dadosExtraidosPDF.lotacao = lotacaoInformada || window.dadosExtraidosPDF.lotacao || window.dadosExtraidosPDF.unidade || 'Não informada';
 
@@ -263,14 +252,12 @@ function sincronizarDadosManuais() {
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
 
-    // Leitura das datas
     const dataVigenciaInput = inputDataParecer ? inputDataParecer.value : '';
     window.dadosExtraidosPDF.dataVigenciaCRSC = dataVigenciaInput;
     window.dadosExtraidosPDF.dataVigencia = dataVigenciaInput;
     window.dadosExtraidosPDF.dataExercicioComissao = inputDataExercicioComissao ? inputDataExercicioComissao.value : '';
     window.dadosExtraidosPDF.unidadeCRSC = inputCRSC ? inputCRSC.value : '';
 
-    // Captura dos dados da Seção 3
     if (selectIQAtual) window.dadosExtraidosPDF.iqAtual = selectIQAtual.value;
     if (selectRscSolicitado) {
         window.dadosExtraidosPDF.nivelSolicitado = selectRscSolicitado.value;
@@ -348,7 +335,7 @@ async function processarArquivoPDF(e) {
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
 
-            if (inputDataParecer) inputDataParecer.value = dados.dataVigenciaCRSC || dados.dataParecer || '';
+            if (inputDataParecer) inputDataParecer.value = dados.dataVigenciaCRSC || dados.dataVigencia || '';
             if (inputDataExercicioComissao) inputDataExercicioComissao.value = dados.dataExercicioComissao || dados.dataExercicio || '';
 
             if (inputCRSC && dados.unidadeCRSC) inputCRSC.value = dados.unidadeCRSC;
@@ -360,7 +347,6 @@ async function processarArquivoPDF(e) {
                 inputDataExercicio.value = dados.dataExercicio || dados.dataExercicioComissao || '';
             }
 
-            // Realiza a busca no CSV carregado para autocompletar Lotação / Data de Exercício
             buscarEPreencherDadosCSV();
 
             if (statusLeitura) {
