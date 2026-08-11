@@ -164,23 +164,34 @@ function extrairDataExercicio(texto) {
 }
 
 /**
- * Busca pela Data de Vigência dos efeitos financeiros / data do requerimento
+ * Busca estritamente pela Data de Vigência / Concessão.
  */
 function extrairDataVigencia(texto) {
-    const regexes = [
-        /(?:Vigência\s+da\s+Concessão|Efeitos\s+financeiros\s+a\s+partir\s+de|Data\s+do\s+requerimento)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+    const regexesVigencia = [
+        // 1. Prioridade Total: Padrão "Vigência da Concessão a partir de: DD/MM/AAAA"
+        /Vigência\s+da\s+Concessão(?:\s+a\s+partir\s+de)?[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        
+        // 2. Termos associados a efeitos financeiros e concessão
+        /(?:Efeitos\s+financeiros\s+a\s+partir\s+de|Efetivação\s+a\s+partir\s+de|Vigência\s+a\s+partir\s+de)[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
+        
+        // 3. Menções explícitas de vigência no texto
         /vigência\s+em[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i,
-        /([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/
+
+        // 4. Fallback Secundário: Apenas se não achar nenhuma das opções acima
+        /Data\s+do\s+requerimento[\s:]*([0-9]{2}[\/\.-][0-9]{2}[\/\.-][0-9]{4})/i
     ];
-    for (const reg of regexes) {
+
+    for (const reg of regexesVigencia) {
         const match = texto.match(reg);
         if (match && match[1]) {
             const partes = match[1].replace(/[\.-]/g, '/').split('/');
             if (partes.length === 3) {
+                // Formata para YYYY-MM-DD
                 return `${partes[2]}-${partes[1]}-${partes[0]}`;
             }
         }
     }
+
     return '';
 }
 
