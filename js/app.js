@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputCargoServidor = document.getElementById('inputCargo');
     inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
     inputSiape = document.getElementById('inputSiape');
-    inputEscolaridade = document.getElementById('inputEscolaridade'); // NOVO CAMPO
+    inputEscolaridade = document.getElementById('inputEscolaridade');
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
     inputPontuacao = document.getElementById('inputPontuacao');
     inputDataParecer = document.getElementById('inputDataParecer');
@@ -117,7 +117,7 @@ function inicializarApp() {
         }
     });
 
-    // Formatação no blur (desfocar do campo) para nomes, cargos e escolaridade
+    // Formatação no blur (desfocar do campo)
     if (inputNomeServidor) {
         inputNomeServidor.addEventListener('blur', () => {
             inputNomeServidor.value = formatarNomeProprio(inputNomeServidor.value);
@@ -148,7 +148,7 @@ function inicializarApp() {
     if (selectEstagioProbatorio) selectEstagioProbatorio.addEventListener('change', sincronizarDadosManuais);
     if (checkErroMaterial) checkErroMaterial.addEventListener('change', sincronizarDadosManuais);
 
-    // Geração do Parecer SEACAR usando 100% dos dados sincronizados da tela
+    // Geração do Parecer SEACAR
     if (btnGerarSeacar) {
         btnGerarSeacar.addEventListener('click', () => {
             sincronizarDadosManuais();
@@ -160,7 +160,7 @@ function inicializarApp() {
         });
     }
 
-    // Geração da Portaria usando 100% dos dados sincronizados da tela
+    // Geração da Portaria
     if (btnGerarPortaria) {
         btnGerarPortaria.addEventListener('click', () => {
             sincronizarDadosManuais();
@@ -237,7 +237,7 @@ function converterCSVParaArray(textoCsv) {
 }
 
 /**
- * Busca em duas etapas (SIAPE e Nome) e SOBRESCREVE a tela com a base oficial CSV
+ * Busca na base CSV por SIAPE ou Nome e preenche os campos do formulário
  */
 function buscarEPreencherDadosCSV() {
     if (!window.baseServidoresCSV || window.baseServidoresCSV.length === 0) return;
@@ -257,7 +257,7 @@ function buscarEPreencherDadosCSV() {
         });
     }
 
-    // Etapa 2: Busca por Nome parcial (resolve SIAPE incorreto vindo do PDF)
+    // Etapa 2: Busca por Nome parcial
     if (!servidorEncontrado && nomeInformado && nomeInformado.length > 3) {
         servidorEncontrado = window.baseServidoresCSV.find(s => {
             const nomeCsv = (s['NOME'] || s['SERVIDOR'] || s['NOME DO SERVIDOR'] || '').toUpperCase();
@@ -265,7 +265,7 @@ function buscarEPreencherDadosCSV() {
         });
     }
 
-    // Sobrescreve e corrige os dados da tela com as informações do CSV
+    // Preenche e atualiza a tela com as informações encontradas
     if (servidorEncontrado) {
         // Nome
         const nomeCsv = servidorEncontrado['NOME'] || servidorEncontrado['SERVIDOR'] || servidorEncontrado['NOME DO SERVIDOR'];
@@ -297,8 +297,15 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.lotacao = lotacaoCsv;
         }
 
-        // Escolaridade / Titulação
-        const escolaridadeCsv = servidorEncontrado['ESCOLARIDADE'] || servidorEncontrado['TITULAÇÃO'] || servidorEncontrado['TITULACAO'] || servidorEncontrado['GRAU_INSTRUCAO'] || servidorEncontrado['NÍVEL DE ESCOLARIDADE'];
+        // Escolaridade / Titulação -> Busca prioritária pela coluna Titulacao_IQ
+        const escolaridadeCsv = servidorEncontrado['TITULACAO_IQ'] || 
+                               servidorEncontrado['TITULAÇÃO_IQ'] || 
+                               servidorEncontrado['TITULACAO IQ'] || 
+                               servidorEncontrado['TITULAÇÃO IQ'] || 
+                               servidorEncontrado['ESCOLARIDADE'] || 
+                               servidorEncontrado['TITULAÇÃO'] || 
+                               servidorEncontrado['TITULACAO'];
+
         if (escolaridadeCsv && inputEscolaridade) {
             const escolaridadeFormatada = formatarNomeProprio(escolaridadeCsv);
             inputEscolaridade.value = escolaridadeFormatada;
