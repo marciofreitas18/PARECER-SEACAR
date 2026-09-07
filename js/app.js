@@ -20,6 +20,25 @@ let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let checkErroMaterial, boxErroMaterial;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
 
+/**
+ * Helper para formatar nomes em Title Case mantendo conectivos em minúsculo
+ */
+function formatarNomeProprio(nome) {
+    if (!nome) return '';
+    const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e'];
+    return nome
+        .toLowerCase()
+        .trim()
+        .split(/\s+/)
+        .map((palavra, index) => {
+            if (index > 0 && excecoes.includes(palavra)) {
+                return palavra;
+            }
+            return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+        })
+        .join(' ');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Inputs de Arquivo
     pdfCRSCInput = document.getElementById('pdfCRSCInput');
@@ -34,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Campos de Edição Manual dos Dados do Parecer (Seção 2)
     inputNomeServidor = document.getElementById('inputNomeServidor');
-    inputCargoServidor = document.getElementById('inputCargoServidor') || document.getElementById('inputCargo');
+    inputCargoServidor = document.getElementById('inputCargo');
     inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
     inputSiape = document.getElementById('inputSiape');
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
@@ -95,6 +114,21 @@ function inicializarApp() {
             });
         }
     });
+
+    // Formatação no blur (desfocar do campo) para nomes e cargos digitados manualmente
+    if (inputNomeServidor) {
+        inputNomeServidor.addEventListener('blur', () => {
+            inputNomeServidor.value = formatarNomeProprio(inputNomeServidor.value);
+            sincronizarDadosManuais();
+        });
+    }
+
+    if (inputCargoServidor) {
+        inputCargoServidor.addEventListener('blur', () => {
+            inputCargoServidor.value = formatarNomeProprio(inputCargoServidor.value);
+            sincronizarDadosManuais();
+        });
+    }
 
     if (selectIQAtual) selectIQAtual.addEventListener('change', sincronizarDadosManuais);
     if (selectRscSolicitado) selectRscSolicitado.addEventListener('change', sincronizarDadosManuais);
@@ -194,7 +228,7 @@ function converterCSVParaArray(textoCsv) {
 }
 
 /**
- * Busca o servidor no CSV pelo SIAPE ou Nome e preenche a Lotação e Data de Exercício
+ * Busca o servidor no CSV por SIAPE ou Nome e autopreenche Nome, Cargo, Lotação e Data de Exercício
  */
 function buscarEPreencherDadosCSV() {
     if (!window.baseServidoresCSV || window.baseServidoresCSV.length === 0) return;
@@ -205,7 +239,7 @@ function buscarEPreencherDadosCSV() {
     if (!siapeInformado && !nomeInformado) return;
 
     const servidorEncontrado = window.baseServidoresCSV.find(s => {
-        const siapeCsv = s['SIAPE'] || s['MATRICULA'] || s['MATRÍCULA'] || '';
+        const siapeCsv = String(s['SIAPE'] || s['MATRICULA'] || s['MATRÍCULA'] || '').trim();
         const nomeCsv = (s['NOME'] || s['SERVIDOR'] || s['NOME DO SERVIDOR'] || '').toUpperCase();
         
         return (siapeInformado && siapeCsv.includes(siapeInformado)) || 
@@ -213,12 +247,37 @@ function buscarEPreencherDadosCSV() {
     });
 
     if (servidorEncontrado) {
+        // Preenche e padroniza o Nome do Servidor
+        const nomeCsv = servidorEncontrado['NOME'] || servidorEncontrado['SERVIDOR'] || servidorEncontrado['NOME DO SERVIDOR'];
+        if (nomeCsv && inputNomeServidor) {
+            const nomeFormatado = formatarNomeProprio(nomeCsv);
+            inputNomeServidor.value = nomeFormatado;
+            window.dadosExtraidosPDF.nomeServidor = nomeFormatado;
+        }
+
+        // Preenche o SIAPE caso a busca tenha ocorrido via Nome
+        const siapeCsv = servidorEncontrado['SIAPE'] || servidorEncontrado['MATRICULA'] || servidorEncontrado['MATRÍCULA'];
+        if (siapeCsv && inputSiape && !inputSiape.value) {
+            inputSiape.value = siapeCsv;
+            window.dadosExtraidosPDF.siape = siapeCsv;
+        }
+
+        // Preenche o Cargo
+        const cargoCsv = servidorEncontrado['CARGO'] || servidorEncontrado['CARGO EFETIVO'];
+        if (cargoCsv && inputCargoServidor) {
+            const cargoFormatado = formatarNomeProprio(cargoCsv);
+            inputCargoServidor.value = cargoFormatado;
+            window.dadosExtraidosPDF.cargo = cargoFormatado;
+        }
+
+        // Preenche Lotação
         const lotacaoCsv = servidorEncontrado['LOTAÇÃO'] || servidorEncontrado['LOTACAO'] || servidorEncontrado['UNIDADE'] || servidorEncontrado['SETOR'] || servidorEncontrado['CAMPUS'];
         if (lotacaoCsv && inputLotacaoServidor) {
             inputLotacaoServidor.value = lotacaoCsv;
             window.dadosExtraidosPDF.lotacao = lotacaoCsv;
         }
 
+        // Preenche Data de Exercício
         const dataExercicioCsv = servidorEncontrado['DATA DE EXERCÍCIO'] || servidorEncontrado['DATA_EXERCICIO'] || servidorEncontrado['EXERCICIO'] || servidorEncontrado['DATA POSSE'] || servidorEncontrado['POSSE'];
         if (dataExercicioCsv && inputDataExercicio) {
             if (dataExercicioCsv.includes('/')) {
@@ -325,8 +384,8 @@ async function processarArquivoPDF(e) {
             const dados = await window.parseParecerCRSC(file);
             window.dadosExtraidosPDF = { ...dados };
 
-            if (inputNomeServidor) inputNomeServidor.value = dados.nomeServidor || '';
-            if (inputCargoServidor) inputCargoServidor.value = dados.cargo || '';
+            if (inputNomeServidor) inputNomeServidor.value = formatarNomeProprio(dados.nomeServidor || '');
+            if (inputCargoServidor) inputCargoServidor.value = formatarNomeProprio(dados.cargo || '');
             if (inputLotacaoServidor) {
                 inputLotacaoServidor.value = dados.lotacao || dados.unidadeLotacao || dados.unidade || dados.setor || '';
             }
