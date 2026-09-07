@@ -75,7 +75,6 @@ let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabe
 
 /**
  * Helper para formatar nomes em Title Case mantendo conectivos em minúsculo
- * e aplicando a acentuação de cargos e palavras conhecidas
  */
 function formatarNomeProprio(nome) {
     if (!nome) return '';
@@ -83,22 +82,16 @@ function formatarNomeProprio(nome) {
     const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'com'];
     let textoProcessado = nome.toLowerCase().trim();
 
-    // 1. Substituição de expressões completas e acentuações via dicionário
     Object.keys(DICIONARIO_CORRECOES).forEach(termo => {
         const regex = new RegExp(`\\b${termo.replace('/', '\\/')}\\b`, 'gi');
         textoProcessado = textoProcessado.replace(regex, DICIONARIO_CORRECOES[termo]);
     });
 
-    // 2. Formatação em Title Case para palavras gerais não cobertas pelo dicionário
     return textoProcessado
         .split(/\s+/)
         .map((palavra, index) => {
-            if (palavra.toLowerCase() !== palavra) {
-                return palavra; // Preserva palavras modificadas pelo dicionário
-            }
-            if (index > 0 && excecoes.includes(palavra.toLowerCase())) {
-                return palavra.toLowerCase(); // Preserva conectivos em minúsculo
-            }
+            if (palavra.toLowerCase() !== palavra) return palavra;
+            if (index > 0 && excecoes.includes(palavra.toLowerCase())) return palavra.toLowerCase();
             return palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase();
         })
         .join(' ');
@@ -116,9 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
     secaoValidacoes = document.getElementById('secaoValidacoes');
     acoesGeracao = document.getElementById('acoesGeracao');
 
-    // Campos de Edição Manual dos Dados do Parecer (Seção 2)
+    // Campos de Edição Manual
     inputNomeServidor = document.getElementById('inputNomeServidor');
-    inputCargoServidor = document.getElementById('inputCargo'); // Alinhado com o id="inputCargo" do HTML
+    inputCargoServidor = document.getElementById('inputCargo');
     inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
     inputSiape = document.getElementById('inputSiape');
     inputEscolaridade = document.getElementById('inputEscolaridade');
@@ -128,13 +121,13 @@ document.addEventListener('DOMContentLoaded', () => {
     inputDataExercicioComissao = document.getElementById('inputDataExercicioComissao');
     inputCRSC = document.getElementById('inputCRSC');
 
-    // Campos de Validação (Seção 3)
+    // Campos de Validação
     selectIQAtual = document.getElementById('selectIQAtual');
     selectRscSolicitado = document.getElementById('selectRscSolicitado');
     inputDataExercicio = document.getElementById('inputDataExercicio');
     selectEstagioProbatorio = document.getElementById('selectEstagioProbatorio');
 
-    // Mapeamento do Alerta e Checkbox de Erro Material
+    // Mapeamento Alerta e Checkbox
     alertaIncompatibilidadeRSC = document.getElementById('alertaIncompatibilidadeRSC');
     alertaRetornoComissao = document.getElementById('alertaRetornoComissao');
     msgDivergenciaData = document.getElementById('msgDivergenciaData');
@@ -156,16 +149,9 @@ function inicializarApp() {
     if (csvServidoresInput) csvServidoresInput.addEventListener('change', processarArquivoCSV);
 
     const camposManuais = [
-        inputNomeServidor, 
-        inputCargoServidor, 
-        inputLotacaoServidor,
-        inputSiape, 
-        inputEscolaridade,
-        inputNumeroProcesso, 
-        inputPontuacao, 
-        inputDataParecer,
-        inputDataExercicioComissao,
-        inputCRSC
+        inputNomeServidor, inputCargoServidor, inputLotacaoServidor,
+        inputSiape, inputEscolaridade, inputNumeroProcesso, 
+        inputPontuacao, inputDataParecer, inputDataExercicioComissao, inputCRSC
     ];
 
     camposManuais.forEach(campo => {
@@ -182,17 +168,17 @@ function inicializarApp() {
     });
 
     if (inputNomeServidor) {
-       if (inputDataExercicio) {
-        window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
-    }
-    if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
-
-    // CORREÇÃO: Apenas lê o valor do checkbox sem forçar 'false'
-    if (checkErroMaterial) {
-        window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
+        inputNomeServidor.addEventListener('blur', () => {
+            inputNomeServidor.value = formatarNomeProprio(inputNomeServidor.value);
+            sincronizarDadosManuais();
+        });
     }
 
-    executarValidacoesRegras();
+    if (inputCargoServidor) {
+        inputCargoServidor.addEventListener('blur', () => {
+            inputCargoServidor.value = formatarNomeProprio(inputCargoServidor.value);
+            sincronizarDadosManuais();
+        });
     }
 
     if (inputEscolaridade) {
@@ -244,7 +230,6 @@ function processarArquivoCSV(e) {
     if (!file) return;
 
     const reader = new FileReader();
-    
     reader.onload = function(evt) {
         const buffer = evt.target.result;
         let texto = "";
@@ -276,7 +261,6 @@ function converterCSVParaArray(textoCsv) {
     if (linhas.length === 0) return [];
 
     const separador = linhas[0].includes(';') ? ';' : ',';
-    // Limpa aspas e espaços extras das chaves/cabeçalhos
     const cabecalhos = linhas[0].split(separador).map(c => c.trim().replace(/^"|"$/g, '').toUpperCase());
 
     const resultado = [];
@@ -292,9 +276,6 @@ function converterCSVParaArray(textoCsv) {
     return resultado;
 }
 
-/**
- * Função responsável por buscar no CSV e preencher o formulário
- */
 function buscarEPreencherDadosCSV() {
     if (!window.baseServidoresCSV || window.baseServidoresCSV.length === 0) return;
 
@@ -305,7 +286,6 @@ function buscarEPreencherDadosCSV() {
 
     let servidorEncontrado = null;
 
-    // 1. Busca por SIAPE
     if (siapeInformado) {
         servidorEncontrado = window.baseServidoresCSV.find(s => {
             const siapeCsv = String(s['SIAPE'] || s['MATRICULA'] || s['MATRÍCULA'] || '').trim();
@@ -313,7 +293,6 @@ function buscarEPreencherDadosCSV() {
         });
     }
 
-    // 2. Busca por Nome
     if (!servidorEncontrado && nomeInformado && nomeInformado.length > 3) {
         servidorEncontrado = window.baseServidoresCSV.find(s => {
             const nomeCsv = (s['NOME'] || s['SERVIDOR'] || s['NOME DO SERVIDOR'] || '').toUpperCase();
@@ -322,7 +301,6 @@ function buscarEPreencherDadosCSV() {
     }
 
     if (servidorEncontrado) {
-        // Função utilitária interna para obter o valor ignorando pequenas variações no cabeçalho
         const obterValorColuna = (chavesValidas) => {
             for (let chave of chavesValidas) {
                 if (servidorEncontrado[chave] !== undefined && servidorEncontrado[chave] !== '') {
@@ -332,7 +310,6 @@ function buscarEPreencherDadosCSV() {
             return '';
         };
 
-        // Nome
         const nomeCsv = obterValorColuna(['NOME', 'SERVIDOR', 'NOME DO SERVIDOR']);
         if (nomeCsv && inputNomeServidor) {
             const nomeFormatado = formatarNomeProprio(nomeCsv);
@@ -340,14 +317,12 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.nomeServidor = nomeFormatado;
         }
 
-        // SIAPE
         const siapeCsv = obterValorColuna(['SIAPE', 'MATRICULA', 'MATRÍCULA']);
         if (siapeCsv && inputSiape) {
             inputSiape.value = siapeCsv;
             window.dadosExtraidosPDF.siape = siapeCsv;
         }
 
-        // Cargo -> Verificação flexível da coluna Cargo
         const cargoCsv = obterValorColuna(['CARGO', 'CARGO EFETIVO', 'DESCRICAO CARGO', 'CARGO_EFETIVO']);
         if (cargoCsv && inputCargoServidor) {
             const cargoFormatado = formatarNomeProprio(cargoCsv);
@@ -355,14 +330,12 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.cargo = cargoFormatado;
         }
 
-        // Lotação
         const lotacaoCsv = obterValorColuna(['LOTAÇÃO', 'LOTACAO', 'UNIDADE', 'SETOR', 'CAMPUS']);
         if (lotacaoCsv && inputLotacaoServidor) {
             inputLotacaoServidor.value = lotacaoCsv;
             window.dadosExtraidosPDF.lotacao = lotacaoCsv;
         }
 
-        // Escolaridade / Titulação
         const escolaridadeCsv = obterValorColuna(['TITULACAO_IQ', 'TITULAÇÃO_IQ', 'TITULACAO IQ', 'TITULAÇÃO IQ', 'ESCOLARIDADE', 'TITULAÇÃO', 'TITULACAO']);
         if (escolaridadeCsv && inputEscolaridade) {
             const escolaridadeFormatada = formatarNomeProprio(escolaridadeCsv);
@@ -370,7 +343,6 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.escolaridade = escolaridadeFormatada;
         }
 
-        // Data de Exercício
         const dataExercicioCsv = obterValorColuna(['DATA DE EXERCÍCIO', 'DATA_EXERCICIO', 'EXERCICIO', 'DATA POSSE', 'POSSE']);
         if (dataExercicioCsv && inputDataExercicio) {
             if (dataExercicioCsv.includes('/')) {
@@ -417,8 +389,8 @@ function sincronizarDadosManuais() {
         window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
     }
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
-    if (checkErroMaterial) checkErroMaterial.checked = false; // ou window.dadosExtraidosPDF.erroMaterialSanavel
 
+    // Apenas obtém o valor sem zerar o estado
     if (checkErroMaterial) window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
 
     executarValidacoesRegras();
@@ -491,7 +463,6 @@ async function processarArquivoPDF(e) {
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
             if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicio || dados.dataExercicioComissao || '';
 
-            // Dispara a busca no CSV e sobrepõe/completa os dados cadastrais
             buscarEPreencherDadosCSV();
 
             if (statusLeitura) {
@@ -565,6 +536,7 @@ function executarValidacoesRegras() {
                     if (msgDivergenciaData) {
                         msgDivergenciaData.innerHTML = textoMensagem;
                         msgDivergenciaData.className = "form-text text-warning d-block fw-bold mt-1";
+                        msgDivergenciaData.classList.remove('d-none');
                     }
                 } else {
                     requerDevolucaoCRSC = true;
@@ -573,6 +545,7 @@ function executarValidacoesRegras() {
                     if (msgDivergenciaData) {
                         msgDivergenciaData.innerHTML = textoMensagem;
                         msgDivergenciaData.className = "form-text text-danger d-block fw-bold mt-1";
+                        msgDivergenciaData.classList.remove('d-none');
                     }
 
                     impedimentos.push(`Divergência na data de exercício: data confirmada (${formatarDataBr(dataConfirmadaStr)}) difere do parecer da CRSC (${formatarDataBr(dataCRSCStr)}).`);
@@ -689,11 +662,18 @@ function carregarHistoricoTabela() {
     });
 }
 
+function limparHistoricoLocal() {
+    if (confirm("Deseja realmente limpar todo o histórico local?")) {
+        localStorage.removeItem('historicoRSC');
+        carregarHistoricoTabela();
+    }
+}
+
 function exportarHistoricoCSV() {
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     if (historico.length === 0) return alert("Não há dados para exportar.");
 
-    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Escolaridade,Nivel,Vigencia,Resultado\n";
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFFData/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Escolaridade,Nivel,Vigencia,Resultado\n";
     historico.forEach(i => {
         csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.cargo}","${i.lotacao}","${i.siape}","${i.escolaridade || '--'}","${i.nivel}","${i.vigencia || '--'}","${i.resultado}"\n`;
     });
@@ -701,15 +681,8 @@ function exportarHistoricoCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `controle_rsc_seacar_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `historico_rsc_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-}
-
-function limparHistoricoLocal() {
-    if (confirm("Deseja realmente apagar o histórico local de análises?")) {
-        localStorage.removeItem('historicoRSC');
-        carregarHistoricoTabela();
-    }
 }
