@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Campos de Edição Manual dos Dados do Parecer (Seção 2)
     inputNomeServidor = document.getElementById('inputNomeServidor');
-    inputCargoServidor = document.getElementById('inputCargo');
+    inputCargoServidor = document.getElementById('inputCargo'); // Alinhado com o id="inputCargo" do HTML
     inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
     inputSiape = document.getElementById('inputSiape');
     inputEscolaridade = document.getElementById('inputEscolaridade');
@@ -90,7 +90,6 @@ function inicializarApp() {
     if (pdfCRSCInput) pdfCRSCInput.addEventListener('change', processarArquivoPDF);
     if (csvServidoresInput) csvServidoresInput.addEventListener('change', processarArquivoCSV);
 
-    // Escuta alterações nos campos editáveis para atualizar o estado global
     const camposManuais = [
         inputNomeServidor, 
         inputCargoServidor, 
@@ -117,7 +116,6 @@ function inicializarApp() {
         }
     });
 
-    // Formatação no blur (desfocar do campo)
     if (inputNomeServidor) {
         inputNomeServidor.addEventListener('blur', () => {
             inputNomeServidor.value = formatarNomeProprio(inputNomeServidor.value);
@@ -148,7 +146,6 @@ function inicializarApp() {
     if (selectEstagioProbatorio) selectEstagioProbatorio.addEventListener('change', sincronizarDadosManuais);
     if (checkErroMaterial) checkErroMaterial.addEventListener('change', sincronizarDadosManuais);
 
-    // Geração do Parecer SEACAR
     if (btnGerarSeacar) {
         btnGerarSeacar.addEventListener('click', () => {
             sincronizarDadosManuais();
@@ -160,7 +157,6 @@ function inicializarApp() {
         });
     }
 
-    // Geração da Portaria
     if (btnGerarPortaria) {
         btnGerarPortaria.addEventListener('click', () => {
             sincronizarDadosManuais();
@@ -178,9 +174,6 @@ function inicializarApp() {
     carregarHistoricoTabela();
 }
 
-/**
- * Lê e processa a planilha .CSV de servidores garantindo a acentuação correta
- */
 function processarArquivoCSV(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -212,15 +205,13 @@ function processarArquivoCSV(e) {
     reader.readAsArrayBuffer(file);
 }
 
-/**
- * Converte o texto CSV em Array de Objetos tratando separadores (, ou ;)
- */
 function converterCSVParaArray(textoCsv) {
     const textoLimpo = textoCsv.replace(/^\uFEFF/, '');
     const linhas = textoLimpo.split(/\r\n|\n/);
     if (linhas.length === 0) return [];
 
     const separador = linhas[0].includes(';') ? ';' : ',';
+    // Limpa aspas e espaços extras das chaves/cabeçalhos
     const cabecalhos = linhas[0].split(separador).map(c => c.trim().replace(/^"|"$/g, '').toUpperCase());
 
     const resultado = [];
@@ -237,7 +228,7 @@ function converterCSVParaArray(textoCsv) {
 }
 
 /**
- * Busca na base CSV por SIAPE ou Nome e preenche os campos do formulário
+ * Função responsável por buscar no CSV e preencher o formulário
  */
 function buscarEPreencherDadosCSV() {
     if (!window.baseServidoresCSV || window.baseServidoresCSV.length === 0) return;
@@ -249,7 +240,7 @@ function buscarEPreencherDadosCSV() {
 
     let servidorEncontrado = null;
 
-    // Etapa 1: Busca pelo SIAPE exato
+    // 1. Busca por SIAPE
     if (siapeInformado) {
         servidorEncontrado = window.baseServidoresCSV.find(s => {
             const siapeCsv = String(s['SIAPE'] || s['MATRICULA'] || s['MATRÍCULA'] || '').trim();
@@ -257,7 +248,7 @@ function buscarEPreencherDadosCSV() {
         });
     }
 
-    // Etapa 2: Busca por Nome parcial
+    // 2. Busca por Nome
     if (!servidorEncontrado && nomeInformado && nomeInformado.length > 3) {
         servidorEncontrado = window.baseServidoresCSV.find(s => {
             const nomeCsv = (s['NOME'] || s['SERVIDOR'] || s['NOME DO SERVIDOR'] || '').toUpperCase();
@@ -265,10 +256,19 @@ function buscarEPreencherDadosCSV() {
         });
     }
 
-    // Preenche e atualiza a tela com as informações encontradas
     if (servidorEncontrado) {
+        // Função utilitária interna para obter o valor ignorando pequenas variações no cabeçalho
+        const obterValorColuna = (chavesValidas) => {
+            for (let chave of chavesValidas) {
+                if (servidorEncontrado[chave] !== undefined && servidorEncontrado[chave] !== '') {
+                    return servidorEncontrado[chave];
+                }
+            }
+            return '';
+        };
+
         // Nome
-        const nomeCsv = servidorEncontrado['NOME'] || servidorEncontrado['SERVIDOR'] || servidorEncontrado['NOME DO SERVIDOR'];
+        const nomeCsv = obterValorColuna(['NOME', 'SERVIDOR', 'NOME DO SERVIDOR']);
         if (nomeCsv && inputNomeServidor) {
             const nomeFormatado = formatarNomeProprio(nomeCsv);
             inputNomeServidor.value = nomeFormatado;
@@ -276,14 +276,14 @@ function buscarEPreencherDadosCSV() {
         }
 
         // SIAPE
-        const siapeCsv = servidorEncontrado['SIAPE'] || servidorEncontrado['MATRICULA'] || servidorEncontrado['MATRÍCULA'];
+        const siapeCsv = obterValorColuna(['SIAPE', 'MATRICULA', 'MATRÍCULA']);
         if (siapeCsv && inputSiape) {
             inputSiape.value = siapeCsv;
             window.dadosExtraidosPDF.siape = siapeCsv;
         }
 
-        // Cargo
-        const cargoCsv = servidorEncontrado['CARGO'] || servidorEncontrado['CARGO EFETIVO'];
+        // Cargo -> Verificação flexível da coluna Cargo
+        const cargoCsv = obterValorColuna(['CARGO', 'CARGO EFETIVO', 'DESCRICAO CARGO', 'CARGO_EFETIVO']);
         if (cargoCsv && inputCargoServidor) {
             const cargoFormatado = formatarNomeProprio(cargoCsv);
             inputCargoServidor.value = cargoFormatado;
@@ -291,21 +291,14 @@ function buscarEPreencherDadosCSV() {
         }
 
         // Lotação
-        const lotacaoCsv = servidorEncontrado['LOTAÇÃO'] || servidorEncontrado['LOTACAO'] || servidorEncontrado['UNIDADE'] || servidorEncontrado['SETOR'] || servidorEncontrado['CAMPUS'];
+        const lotacaoCsv = obterValorColuna(['LOTAÇÃO', 'LOTACAO', 'UNIDADE', 'SETOR', 'CAMPUS']);
         if (lotacaoCsv && inputLotacaoServidor) {
             inputLotacaoServidor.value = lotacaoCsv;
             window.dadosExtraidosPDF.lotacao = lotacaoCsv;
         }
 
-        // Escolaridade / Titulação -> Busca prioritária pela coluna Titulacao_IQ
-        const escolaridadeCsv = servidorEncontrado['TITULACAO_IQ'] || 
-                               servidorEncontrado['TITULAÇÃO_IQ'] || 
-                               servidorEncontrado['TITULACAO IQ'] || 
-                               servidorEncontrado['TITULAÇÃO IQ'] || 
-                               servidorEncontrado['ESCOLARIDADE'] || 
-                               servidorEncontrado['TITULAÇÃO'] || 
-                               servidorEncontrado['TITULACAO'];
-
+        // Escolaridade / Titulação
+        const escolaridadeCsv = obterValorColuna(['TITULACAO_IQ', 'TITULAÇÃO_IQ', 'TITULACAO IQ', 'TITULAÇÃO IQ', 'ESCOLARIDADE', 'TITULAÇÃO', 'TITULACAO']);
         if (escolaridadeCsv && inputEscolaridade) {
             const escolaridadeFormatada = formatarNomeProprio(escolaridadeCsv);
             inputEscolaridade.value = escolaridadeFormatada;
@@ -313,7 +306,7 @@ function buscarEPreencherDadosCSV() {
         }
 
         // Data de Exercício
-        const dataExercicioCsv = servidorEncontrado['DATA DE EXERCÍCIO'] || servidorEncontrado['DATA_EXERCICIO'] || servidorEncontrado['EXERCICIO'] || servidorEncontrado['DATA POSSE'] || servidorEncontrado['POSSE'];
+        const dataExercicioCsv = obterValorColuna(['DATA DE EXERCÍCIO', 'DATA_EXERCICIO', 'EXERCICIO', 'DATA POSSE', 'POSSE']);
         if (dataExercicioCsv && inputDataExercicio) {
             if (dataExercicioCsv.includes('/')) {
                 const [d, m, a] = dataExercicioCsv.split('/');
@@ -324,23 +317,18 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
         }
 
-        executarValidacoesRegras();
+        sincronizarDadosManuais();
     }
 }
 
-/**
- * Coleta TUDO o que está na tela e atualiza o objeto global
- */
 function sincronizarDadosManuais() {
-    if (!window.dadosExtraidosPDF) {
-        window.dadosExtraidosPDF = {};
-    }
+    if (!window.dadosExtraidosPDF) window.dadosExtraidosPDF = {};
 
     window.dadosExtraidosPDF.nomeServidor = inputNomeServidor ? inputNomeServidor.value.trim() : '';
     window.dadosExtraidosPDF.cargo = inputCargoServidor ? inputCargoServidor.value.trim() : '';
 
     const lotacaoInformada = inputLotacaoServidor ? inputLotacaoServidor.value.trim() : '';
-    window.dadosExtraidosPDF.lotacao = lotacaoInformada || window.dadosExtraidosPDF.lotacao || window.dadosExtraidosPDF.unidade || 'Não informada';
+    window.dadosExtraidosPDF.lotacao = lotacaoInformada || window.dadosExtraidosPDF.lotacao || 'Não informada';
 
     window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
     window.dadosExtraidosPDF.escolaridade = inputEscolaridade ? inputEscolaridade.value.trim() : '';
@@ -423,27 +411,20 @@ async function processarArquivoPDF(e) {
 
             if (inputNomeServidor) inputNomeServidor.value = formatarNomeProprio(dados.nomeServidor || '');
             if (inputCargoServidor) inputCargoServidor.value = formatarNomeProprio(dados.cargo || '');
-            if (inputLotacaoServidor) {
-                inputLotacaoServidor.value = dados.lotacao || dados.unidadeLotacao || dados.unidade || dados.setor || '';
-            }
-
+            if (inputLotacaoServidor) inputLotacaoServidor.value = dados.lotacao || dados.unidadeLotacao || dados.unidade || '';
             if (inputSiape) inputSiape.value = dados.siape || '';
             if (inputEscolaridade) inputEscolaridade.value = formatarNomeProprio(dados.escolaridade || '');
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
-
             if (inputDataParecer) inputDataParecer.value = dados.dataVigenciaCRSC || dados.dataVigencia || '';
             if (inputDataExercicioComissao) inputDataExercicioComissao.value = dados.dataExercicioComissao || dados.dataExercicio || '';
-
             if (inputCRSC && dados.unidadeCRSC) inputCRSC.value = dados.unidadeCRSC;
 
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
+            if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicio || dados.dataExercicioComissao || '';
 
-            if (inputDataExercicio) {
-                inputDataExercicio.value = dados.dataExercicio || dados.dataExercicioComissao || '';
-            }
-
+            // Dispara a busca no CSV e sobrepõe/completa os dados cadastrais
             buscarEPreencherDadosCSV();
 
             if (statusLeitura) {
