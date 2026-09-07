@@ -182,17 +182,17 @@ function inicializarApp() {
     });
 
     if (inputNomeServidor) {
-        inputNomeServidor.addEventListener('blur', () => {
-            inputNomeServidor.value = formatarNomeProprio(inputNomeServidor.value);
-            sincronizarDadosManuais();
-        });
+       if (inputDataExercicio) {
+        window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
+    }
+    if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+
+    // CORREÇÃO: Apenas lê o valor do checkbox sem forçar 'false'
+    if (checkErroMaterial) {
+        window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
     }
 
-    if (inputCargoServidor) {
-        inputCargoServidor.addEventListener('blur', () => {
-            inputCargoServidor.value = formatarNomeProprio(inputCargoServidor.value);
-            sincronizarDadosManuais();
-        });
+    executarValidacoesRegras();
     }
 
     if (inputEscolaridade) {
