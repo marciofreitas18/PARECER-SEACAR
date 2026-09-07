@@ -3,114 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validador de Parecer CRSC</title>
+    <title>Assistente RSC-PCCTAE - UFFS (V2)</title>
+
+    <!-- Google Fonts para Fira Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { background-color: #f8f9fa; }
-        .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .card-header { background-color: #0d6efd; color: white; border-radius: 10px 10px 0 0 !important; }
-        .badge-status { font-size: 0.9rem; padding: 0.5em 0.8em; }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PDF.js, Tesseract.js e PapaParse (Leitor de CSV) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
-    <div class="container my-4">
-        <h2 class="mb-4 text-center text-primary"><i class="fa-solid fa-file-signature me-2"></i>Validador e Analista de Parecer CRSC</h2>
-
-        <!-- SEÇÃO 1: CARREGAMENTO DE ARQUIVOS -->
-        <div class="card">
-            <div class="card-header fw-bold">
-                <i class="fa-solid fa-upload me-2"></i>1. Importação de Dados
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="fileCsv" class="form-label fw-semibold">Base de Servidores (CSV):</label>
-                        <input type="file" id="fileCsv" class="form-control" accept=".csv">
-                        <small class="text-muted">Carregue o cadastro oficial de servidores para validação.</small>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="filePdf" class="form-label fw-semibold">Parecer CRSC (PDF):</label>
-                        <input type="file" id="filePdf" class="form-control" accept=".pdf">
-                        <small class="text-muted">Carregue o documento PDF do parecer emitido.</small>
+    <div class="min-h-screen">
+        <!-- Header Principal Institucional -->
+        <header class="header-uffs-principal">
+            <div class="container-fluid max-w-6xl d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="./logo-uffs.png" alt="Universidade Federal da Fronteira Sul">
+                    <div class="divisor-vertical d-none d-sm-block"></div>
+                    <div>
+                        <h1>Assistente para geração de parecer e Portaria para o RSC-PCCTAE</h1>
+                        <p class="mb-0">RECONHECIMENTO DE SABERES E COMPETÊNCIAS — PCCTAE- UFFS <span class="badge bg-warning text-dark ms-2">V2 - Validação Auto</span></p>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- SEÇÃO 2: DADOS EXTRAÍDOS E CADASTRAIS -->
-        <div class="card">
-            <div class="card-header fw-bold">
-                <i class="fa-solid fa-user-check me-2"></i>2. Dados do Servidor e Parecer
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="inputNomeServidor" class="form-label fw-semibold">Nome do Servidor:</label>
-                        <input type="text" id="inputNomeServidor" class="form-control" placeholder="Nome completo">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="inputSiape" class="form-label fw-semibold">SIAPE / Matrícula:</label>
-                        <input type="text" id="inputSiape" class="form-control" placeholder="Número SIAPE">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício:</label>
-                        <input type="date" id="inputDataExercicio" class="form-control">
-                    </div>
-                    <div class="col-md-5">
-                        <label for="inputCargoServidor" class="form-label fw-semibold">Cargo Efetivo:</label>
-                        <input type="text" id="inputCargoServidor" class="form-control" placeholder="Cargo">
-                    </div>
-                    <div class="col-md-4">
-                        <label for="inputLotacaoServidor" class="form-label fw-semibold">Lotação / Unidade:</label>
-                        <input type="text" id="inputLotacaoServidor" class="form-control" placeholder="Unidade de lotação">
-                    </div>
-                    <!-- Campo de Escolaridade / Formação Adicionado -->
-                    <div class="col-md-3">
-                        <label for="inputEscolaridade" class="form-label fw-semibold">Escolaridade / Titulação:</label>
-                        <input type="text" id="inputEscolaridade" class="form-control" placeholder="Ex: Mestrado / Especialização">
-                    </div>
+                <div>
+                    <button type="button" class="btn btn-sm rounded-pill px-3" onclick="limparFormularioProcesso()">
+                        🔄 Novo Processo / Limpar
+                    </button>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- SEÇÃO 3: HISTÓRICO DE REGISTROS -->
-        <div class="card">
-            <div class="card-header fw-bold">
-                <i class="fa-solid fa-table me-2"></i>3. Histórico de Análises
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Nome do Servidor</th>
-                                <th>SIAPE</th>
-                                <th>Cargo</th>
-                                <th>Lotação</th>
-                                <th>Escolaridade</th>
-                                <th>Data Exercício</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyHistorico">
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">Nenhum registro analisado até o momento.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <main class="container py-4 max-w-6xl">
+            <!-- Card Principal (Hero) -->
+            <div class="card card-hero-uffs border-0 p-3 p-md-4 mb-4">
+                <div class="card-body">
+
+                    <!-- 0. Carregar Base Cadastral de Servidores (.CSV) -->
+                    <div class="card mb-4 border-success">
+                        <div class="card-body bg-light">
+                            <label for="csvServidoresInput" class="form-label fw-bold text-success">
+                                📊 0. (Opcional) Carregar Base Cadastral de Servidores (.CSV):
+                            </label>
+                            <input type="file" id="csvServidoresInput" class="form-control" accept=".csv">
+                            <div id="statusCSV" class="form-text text-success fw-bold d-none mt-2">
+                                ✅ Base cadastral carregada com sucesso!
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 1. Seleção de PDF -->
+                    <div class="mb-4">
+                        <label for="pdfCRSCInput" class="form-label fw-bold text-brand-uffs fs-5 mb-2">
+                            1. Selecione o Parecer da CRSC (PDF):
+                        </label>
+                        <input class="form-control form-control-lg rounded-3" type="file" id="pdfCRSCInput" accept=".pdf">
+                    </div>
+
+                    <!-- Status da Leitura -->
+                    <div id="statusLeitura" class="alert alert-secondary text-center d-none rounded-3 shadow-sm" role="alert">
+                        Aguardando arquivo...
+                    </div>
+
+                    <!-- 2. Dados Extraídos do Parecer (Conferência / Edição Manual) -->
+                    <div id="secaoDadosParecer" class="mt-4 p-4 bg-brand-soft border-brand-soft rounded-uffs border shadow-sm d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                            <h5 class="fw-bold text-brand-uffs mb-0">2. Dados do Parecer da CRSC (Conferência / Edição Manual)</h5>
+                            <span id="badgeOrigemDados" class="badge bg-white text-success border border-success">✍️ Editável</span>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label for="inputNomeServidor" class="form-label fw-semibold">Nome do(a) Servidor(a):</label>
+                                <input type="text" id="inputNomeServidor" class="form-control" placeholder="Digite ou aguarde o PDF...">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="inputCargo" class="form-label fw-semibold">Cargo do(a) Servidor(a):</label>
+                                <input type="text" id="inputCargo" class="form-control" placeholder="Ex: Assistente em Administração">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="inputSiape" class="form-label fw-semibold">Matrícula SIAPE:</label>
+                                <input type="text" id="inputSiape" class="form-control" placeholder="Ex: 1234567">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="inputEscolaridade" class="form-label fw-semibold">Escolaridade / Titulação:</label>
+                                <input type="text" id="inputEscolaridade" class="form-control" placeholder="Ex: Especialização em Gestão Pública">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="inputLotacaoServidor" class="form-label fw-semibold">Lotação do Servidor:</label>
+                                <input type="text" id="inputLotacaoServidor" class="form-control" placeholder="Ex: Coordenação Adjunta de Áreas Experimentais">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="inputNumeroProcesso" class="form-label fw-semibold">Nº do Processo:</label>
+                                <input type="text" id="inputNumeroProcesso" class="form-control" placeholder="23205.XXXXXX/2026-XX">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="inputPontuacao" class="form-label fw-semibold">Pontuação Obtida:</label>
+                                <input type="number" step="0.1" id="inputPontuacao" class="form-control" placeholder="Ex: 85.0">
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="inputDataParecer" class="form-label fw-bold">Data de Vigência da Concessão (a partir de):</label>
+                                <input type="date" id="inputDataParecer" class="form-control">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="inputDataExercicioComissao" class="form-label fw-semibold">Data Exercício (no Parecer da CRSC):</label>
+                                <input type="date" id="inputDataExercicioComissao" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Validações Técnicas e Legais -->
+                    <div id="secaoValidacoes" class="mt-4 p-4 bg-white rounded-uffs border border-brand-soft shadow-sm d-none">
+                        <h5 class="fw-bold text-brand-uffs mb-3 border-bottom pb-2">3. Validações Técnicas e Legais</h5>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="inputCRSC" class="form-label fw-semibold">CRSC / Unidade de Origem:</label>
+                            <select id="inputCRSC" class="form-select">
+                                <option value="">-- Selecione a CRSC --</option>
+                                <option value="CRSC - Reitoria">CRSC - Reitoria</option>
+                                <option value="CRSC - Campus Chapecó">CRSC - Campus Chapecó</option>
+                                <option value="CRSC - Campus Cerro Largo">CRSC - Campus Cerro Largo</option>
+                                <option value="CRSC - Campus Erechim">CRSC - Campus Erechim</option>
+                                <option value="CRSC - Campus Passo Fundo">CRSC - Campus Passo Fundo</option>
+                                <option value="CRSC - Campus Laranjeiras do Sul">CRSC - Campus Laranjeiras do Sul</option>
+                                <option value="CRSC - Campus Realeza">CRSC - Campus Realeza</option>
+                            </select>
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="selectIQAtual" class="form-label fw-semibold">IQ / Titulação Atual do Servidor:</label>
+                                <select id="selectIQAtual" class="form-select">
+                                    <option value="">Selecione o IQ atual...</option>
+                                    <option value="0">0 - Ensino Médio / Técnico (Requisito para RSC-III)</option>
+                                    <option value="25">25% - Graduação (Requisito para RSC-IV)</option>
+                                    <option value="30">30% - Especialização / Lato Sensu (Requisito para RSC-V)</option>
+                                    <option value="52">52% - Mestrado (Requisito para o RSC-VI)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="selectRscSolicitado" class="form-label fw-semibold">Nível RSC Solicitado:</label>
+                                <select id="selectRscSolicitado" class="form-select">
+                                    <option value="">Selecione o RSC solicitado...</option>
+                                    <option value="RSC-I">RSC-PCCTAE-I</option>
+                                    <option value="RSC-II">RSC-PCCTAE-II</option>
+                                    <option value="RSC-III">RSC-PCCTAE-III</option>
+                                    <option value="RSC-IV">RSC-PCCTAE-IV</option>
+                                    <option value="RSC-V">RSC-PCCTAE-V</option>
+                                    <option value="RSC-VI">RSC-PCCTAE-VI</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="inputDataExercicio" class="form-label fw-semibold">Data de Exercício no Cargo Atual:</label>
+                                <input type="date" id="inputDataExercicio" class="form-control">
+                                
+                                <div id="msgDivergenciaData" class="form-text text-danger d-none fw-bold mt-1">
+                                    ⚠️ Divergência com a data do parecer da comissão!
+                                </div>
+                                
+                                <div id="boxErroMaterial" class="form-check mt-2 d-none">
+                                    <input class="form-check-input" type="checkbox" id="checkErroMaterial">
+                                    <label class="form-check-label small fw-semibold text-dark" for="checkErroMaterial">
+                                        Tratar divergência como <strong>Erro Material Sanável</strong> (Retificar de ofício no Parecer, sem devolver à CRSC)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="selectEstagioProbatorio" class="form-label fw-semibold">Servidor em Estágio Probatório?</label>
+                                <select id="selectEstagioProbatorio" class="form-select">
+                                    <option value="nao" selected>Não</option>
+                                    <option value="sim">Sim (Impedimento Legal)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="alertaIncompatibilidadeRSC" class="alert alert-danger d-none mt-3 mb-0"></div>
+                        <div id="alertaRetornoComissao" class="alert alert-warning d-none mt-3 mb-0"></div>
+                    </div>
+
+                    <!-- 4. Botões de Ação/Download -->
+                    <div id="acoesGeracao" class="d-none mt-4 pt-3 border-top">
+                        <h5 class="text-center mb-3 fw-bold text-secondary">4. Documentos Gerados</h5>
+                        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                            <button id="btnGerarSeacar" class="btn btn-outline-success btn-lg px-4 shadow-sm rounded-pill">
+                                📄 Baixar Parecer SEACAR (.html)
+                            </button>
+                            <button id="btnGerarPortaria" class="btn btn-brand-uffs btn-lg px-4 shadow-sm rounded-pill">
+                                📜 Baixar Minuta Portaria (.doc)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Relatório / Histórico Local -->
+                    <div id="secaoRelatorio" class="mt-5 pt-4 border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <h5 class="fw-bold text-brand-uffs mb-0">📊 Controle de Processos Analisados</h5>
+                            <div>
+                                <button id="btnExportarExcel" class="btn btn-sm btn-outline-success me-2">📥 Exportar CSV</button>
+                                <button id="btnLimparHistorico" class="btn btn-sm btn-outline-danger">🗑️ Limpar Histórico</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-striped table-hover align-middle mb-0">
+                                <thead class="table-dark bg-brand-uffs">
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Processo</th>
+                                        <th>Servidor(a)</th>
+                                        <th>Cargo</th>
+                                        <th>Lotação</th>
+                                        <th>SIAPE</th>
+                                        <th>Escolaridade</th>
+                                        <th>Nível</th>
+                                        <th>Vigência</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaHistorico"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </div>
+        </main>
+
+        <!-- Rodapé Institucional UFFS -->
+        <footer class="footer-uffs mt-5">
+            <div class="container max-w-6xl text-center">
+                <p class="mb-1 fw-bold">Universidade Federal da Fronteira Sul - UFFS</p>
+                <p class="mb-0 small opacity-75">Pró-Reitoria de Gestão de Pessoas (PROGESP) • Divisão de Avaliação e Carreira (DAC)</p>
+            </div>
+        </footer>
     </div>
 
-    <!-- Bibliotecas externas (PDF.js, PapaParse e Bootstrap) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Script Principal -->
-    <script src="app.js"></script>
+    <!-- Scripts da Aplicação -->
+    <script src="js/valida-base-csv.js"></script>
+    <script src="js/parse-parecer-crsc.js"></script>
+    <script src="js/parecer-seacar-pdf.js"></script>
+    <script src="js/minuta-portaria-pdf.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
