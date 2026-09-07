@@ -14,7 +14,7 @@ window.baseServidoresCSV = window.baseServidoresCSV || [];
 
 // Mapeamento Elementos do DOM
 let pdfCRSCInput, csvServidoresInput, statusCSV, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
-let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputDataExercicioComissao, inputCRSC;
+let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputEscolaridade, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputDataExercicioComissao, inputCRSC;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
 let checkErroMaterial, boxErroMaterial;
@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputCargoServidor = document.getElementById('inputCargo');
     inputLotacaoServidor = document.getElementById('inputLotacaoServidor');
     inputSiape = document.getElementById('inputSiape');
+    inputEscolaridade = document.getElementById('inputEscolaridade'); // NOVO CAMPO
     inputNumeroProcesso = document.getElementById('inputNumeroProcesso');
     inputPontuacao = document.getElementById('inputPontuacao');
     inputDataParecer = document.getElementById('inputDataParecer');
@@ -95,6 +96,7 @@ function inicializarApp() {
         inputCargoServidor, 
         inputLotacaoServidor,
         inputSiape, 
+        inputEscolaridade,
         inputNumeroProcesso, 
         inputPontuacao, 
         inputDataParecer,
@@ -115,7 +117,7 @@ function inicializarApp() {
         }
     });
 
-    // Formatação no blur (desfocar do campo) para nomes e cargos digitados manualmente
+    // Formatação no blur (desfocar do campo) para nomes, cargos e escolaridade
     if (inputNomeServidor) {
         inputNomeServidor.addEventListener('blur', () => {
             inputNomeServidor.value = formatarNomeProprio(inputNomeServidor.value);
@@ -126,6 +128,13 @@ function inicializarApp() {
     if (inputCargoServidor) {
         inputCargoServidor.addEventListener('blur', () => {
             inputCargoServidor.value = formatarNomeProprio(inputCargoServidor.value);
+            sincronizarDadosManuais();
+        });
+    }
+
+    if (inputEscolaridade) {
+        inputEscolaridade.addEventListener('blur', () => {
+            inputEscolaridade.value = formatarNomeProprio(inputEscolaridade.value);
             sincronizarDadosManuais();
         });
     }
@@ -228,7 +237,7 @@ function converterCSVParaArray(textoCsv) {
 }
 
 /**
- * Busca o servidor no CSV por SIAPE ou Nome e autopreenche Nome, Cargo, Lotação e Data de Exercício
+ * Busca em duas etapas (SIAPE e Nome) e SOBRESCREVE a tela com a base oficial CSV
  */
 function buscarEPreencherDadosCSV() {
     if (!window.baseServidoresCSV || window.baseServidoresCSV.length === 0) return;
@@ -238,16 +247,27 @@ function buscarEPreencherDadosCSV() {
 
     if (!siapeInformado && !nomeInformado) return;
 
-    const servidorEncontrado = window.baseServidoresCSV.find(s => {
-        const siapeCsv = String(s['SIAPE'] || s['MATRICULA'] || s['MATRÍCULA'] || '').trim();
-        const nomeCsv = (s['NOME'] || s['SERVIDOR'] || s['NOME DO SERVIDOR'] || '').toUpperCase();
-        
-        return (siapeInformado && siapeCsv.includes(siapeInformado)) || 
-               (nomeInformado && nomeCsv.length > 3 && nomeCsv.includes(nomeInformado));
-    });
+    let servidorEncontrado = null;
 
+    // Etapa 1: Busca pelo SIAPE exato
+    if (siapeInformado) {
+        servidorEncontrado = window.baseServidoresCSV.find(s => {
+            const siapeCsv = String(s['SIAPE'] || s['MATRICULA'] || s['MATRÍCULA'] || '').trim();
+            return siapeCsv === siapeInformado;
+        });
+    }
+
+    // Etapa 2: Busca por Nome parcial (resolve SIAPE incorreto vindo do PDF)
+    if (!servidorEncontrado && nomeInformado && nomeInformado.length > 3) {
+        servidorEncontrado = window.baseServidoresCSV.find(s => {
+            const nomeCsv = (s['NOME'] || s['SERVIDOR'] || s['NOME DO SERVIDOR'] || '').toUpperCase();
+            return nomeCsv.includes(nomeInformado) || nomeInformado.includes(nomeCsv);
+        });
+    }
+
+    // Sobrescreve e corrige os dados da tela com as informações do CSV
     if (servidorEncontrado) {
-        // Preenche e padroniza o Nome do Servidor
+        // Nome
         const nomeCsv = servidorEncontrado['NOME'] || servidorEncontrado['SERVIDOR'] || servidorEncontrado['NOME DO SERVIDOR'];
         if (nomeCsv && inputNomeServidor) {
             const nomeFormatado = formatarNomeProprio(nomeCsv);
@@ -255,14 +275,14 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.nomeServidor = nomeFormatado;
         }
 
-        // Preenche o SIAPE caso a busca tenha ocorrido via Nome
+        // SIAPE
         const siapeCsv = servidorEncontrado['SIAPE'] || servidorEncontrado['MATRICULA'] || servidorEncontrado['MATRÍCULA'];
-        if (siapeCsv && inputSiape && !inputSiape.value) {
+        if (siapeCsv && inputSiape) {
             inputSiape.value = siapeCsv;
             window.dadosExtraidosPDF.siape = siapeCsv;
         }
 
-        // Preenche o Cargo
+        // Cargo
         const cargoCsv = servidorEncontrado['CARGO'] || servidorEncontrado['CARGO EFETIVO'];
         if (cargoCsv && inputCargoServidor) {
             const cargoFormatado = formatarNomeProprio(cargoCsv);
@@ -270,14 +290,22 @@ function buscarEPreencherDadosCSV() {
             window.dadosExtraidosPDF.cargo = cargoFormatado;
         }
 
-        // Preenche Lotação
+        // Lotação
         const lotacaoCsv = servidorEncontrado['LOTAÇÃO'] || servidorEncontrado['LOTACAO'] || servidorEncontrado['UNIDADE'] || servidorEncontrado['SETOR'] || servidorEncontrado['CAMPUS'];
         if (lotacaoCsv && inputLotacaoServidor) {
             inputLotacaoServidor.value = lotacaoCsv;
             window.dadosExtraidosPDF.lotacao = lotacaoCsv;
         }
 
-        // Preenche Data de Exercício
+        // Escolaridade / Titulação
+        const escolaridadeCsv = servidorEncontrado['ESCOLARIDADE'] || servidorEncontrado['TITULAÇÃO'] || servidorEncontrado['TITULACAO'] || servidorEncontrado['GRAU_INSTRUCAO'] || servidorEncontrado['NÍVEL DE ESCOLARIDADE'];
+        if (escolaridadeCsv && inputEscolaridade) {
+            const escolaridadeFormatada = formatarNomeProprio(escolaridadeCsv);
+            inputEscolaridade.value = escolaridadeFormatada;
+            window.dadosExtraidosPDF.escolaridade = escolaridadeFormatada;
+        }
+
+        // Data de Exercício
         const dataExercicioCsv = servidorEncontrado['DATA DE EXERCÍCIO'] || servidorEncontrado['DATA_EXERCICIO'] || servidorEncontrado['EXERCICIO'] || servidorEncontrado['DATA POSSE'] || servidorEncontrado['POSSE'];
         if (dataExercicioCsv && inputDataExercicio) {
             if (dataExercicioCsv.includes('/')) {
@@ -308,6 +336,7 @@ function sincronizarDadosManuais() {
     window.dadosExtraidosPDF.lotacao = lotacaoInformada || window.dadosExtraidosPDF.lotacao || window.dadosExtraidosPDF.unidade || 'Não informada';
 
     window.dadosExtraidosPDF.siape = inputSiape ? inputSiape.value.trim() : '';
+    window.dadosExtraidosPDF.escolaridade = inputEscolaridade ? inputEscolaridade.value.trim() : '';
     window.dadosExtraidosPDF.numeroProcesso = inputNumeroProcesso ? inputNumeroProcesso.value.trim() : '';
     window.dadosExtraidosPDF.pontuacaoObtida = inputPontuacao ? inputPontuacao.value : '';
 
@@ -340,6 +369,7 @@ function limparFormularioProcesso(limparArquivoInput = true) {
     if (inputCargoServidor) inputCargoServidor.value = '';
     if (inputLotacaoServidor) inputLotacaoServidor.value = '';
     if (inputSiape) inputSiape.value = '';
+    if (inputEscolaridade) inputEscolaridade.value = '';
     if (inputNumeroProcesso) inputNumeroProcesso.value = '';
     if (inputPontuacao) inputPontuacao.value = '';
     if (inputDataParecer) inputDataParecer.value = '';
@@ -391,6 +421,7 @@ async function processarArquivoPDF(e) {
             }
 
             if (inputSiape) inputSiape.value = dados.siape || '';
+            if (inputEscolaridade) inputEscolaridade.value = formatarNomeProprio(dados.escolaridade || '');
             if (inputNumeroProcesso) inputNumeroProcesso.value = dados.numeroProcesso || '';
             if (inputPontuacao) inputPontuacao.value = dados.pontuacaoObtida || '';
 
@@ -561,6 +592,7 @@ function salvarProcessoNoHistorico(dados) {
         cargo: dados.cargo || '--',
         lotacao: dados.lotacao || '--',
         siape: dados.siape || '--',
+        escolaridade: dados.escolaridade || '--',
         nivel: dados.nivelSolicitado || '--',
         vigencia: dataVigenciaFormatada,
         resultado: dados.resultado || 'ANALISADO'
@@ -579,7 +611,7 @@ function carregarHistoricoTabela() {
     tabelaHistorico.innerHTML = '';
 
     if (historico.length === 0) {
-        tabelaHistorico.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Nenhum processo analisado localmente.</td></tr>';
+        tabelaHistorico.innerHTML = '<tr><td colspan="10" class="text-center text-muted">Nenhum processo analisado localmente.</td></tr>';
         return;
     }
 
@@ -593,6 +625,7 @@ function carregarHistoricoTabela() {
             <td>${item.cargo}</td>
             <td>${item.lotacao}</td>
             <td>${item.siape}</td>
+            <td>${item.escolaridade || '--'}</td>
             <td>${item.nivel}</td>
             <td>${item.vigencia || '--'}</td>
             <td><span class="badge ${badgeClass}">${item.resultado}</span></td>
@@ -605,9 +638,9 @@ function exportarHistoricoCSV() {
     let historico = JSON.parse(localStorage.getItem('historicoRSC') || '[]');
     if (historico.length === 0) return alert("Não há dados para exportar.");
 
-    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Nivel,Vigencia,Resultado\n";
+    let csvContent = "data:text/csv;charset=utf-8,Data/Hora,Processo,Servidor,Cargo,Lotacao,SIAPE,Escolaridade,Nivel,Vigencia,Resultado\n";
     historico.forEach(i => {
-        csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.cargo}","${i.lotacao}","${i.siape}","${i.nivel}","${i.vigencia || '--'}","${i.resultado}"\n`;
+        csvContent += `"${i.dataHora}","${i.processo}","${i.servidor}","${i.cargo}","${i.lotacao}","${i.siape}","${i.escolaridade || '--'}","${i.nivel}","${i.vigencia || '--'}","${i.resultado}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
