@@ -8,6 +8,59 @@ const REQUISITOS_DECRETO_13048 = {
     'RSC-VI':  { iqExigido: 52, descricao: 'Mestrado (IQ 52%)' }
 };
 
+/**
+ * Dicionário completo com correções de acentuação para a lista de cargos
+ */
+const DICIONARIO_CORRECOES = {
+    'administrador': 'Administrador',
+    'analista de tecnologia da informacao': 'Analista de Tecnologia da Informação',
+    'arquiteto e urbanista': 'Arquiteto e Urbanista',
+    'arquivista': 'Arquivista',
+    'assistente em administracao': 'Assistente em Administração',
+    'assistente social': 'Assistente Social',
+    'auditor': 'Auditor',
+    'bibliotecario-documentalista': 'Bibliotecário-Documentalista',
+    'biologo': 'Biólogo',
+    'contador': 'Contador',
+    'economista': 'Economista',
+    'enfermeiro': 'Enfermeiro',
+    'engenheiro de seguranca do trabalho': 'Engenheiro de Segurança do Trabalho',
+    'engenheiro de segurança do trabalho': 'Engenheiro de Segurança do Trabalho',
+    'engenheiro-area': 'Engenheiro-Área',
+    'farmaceutico': 'Farmacêutico',
+    'fisioterapeuta': 'Fisioterapeuta',
+    'jornalista': 'Jornalista',
+    'medico veterinario': 'Médico Veterinário',
+    'medico-area': 'Médico-Área',
+    'nutricionista-habilitacao': 'Nutricionista-Habilitação',
+    'pedagogo-area': 'Pedagogo-Área',
+    'produtor cultural': 'Produtor Cultural',
+    'programador visual': 'Programador Visual',
+    'psicologo': 'Psicólogo',
+    'relacoes publicas': 'Relações Públicas',
+    'revisor de textos': 'Revisor de Textos',
+    'sanitarista': 'Sanitarista',
+    'secretario executivo': 'Secretário Executivo',
+    'tecnico de laboratorio/area': 'Técnico de Laboratório/Área',
+    'técnico de laboratorio/área': 'Técnico de Laboratório/Área',
+    'tecnico de tecnologia da informacao': 'Técnico de Tecnologia da Informação',
+    'tecnico em agropecuaria': 'Técnico em Agropecuária',
+    'tecnico em anatomia e necropsia': 'Técnico em Anatomia e Necropsia',
+    'tecnico em arquivo': 'Técnico em Arquivo',
+    'tecnico em assuntos educacionais': 'Técnico em Assuntos Educacionais',
+    'tecnico em audiovisual': 'Técnico em Audiovisual',
+    'tecnico em contabilidade': 'Técnico em Contabilidade',
+    'tecnico em edificacoes': 'Técnico em Edificações',
+    'tecnico em eletronica': 'Técnico em Eletrônica',
+    'tecnico em eletrotecnica': 'Técnico em Eletrotécnica',
+    'tecnico em enfermagem': 'Técnico em Enfermagem',
+    'tecnico em nutricao e dietetica': 'Técnico em Nutrição e Dietética',
+    'tecnico em quimica': 'Técnico em Química',
+    'tecnico em seguranca do trabalho': 'Técnico em Segurança do Trabalho',
+    'tecnologo': 'Tecnólogo',
+    'tradutor e interprete de linguagem de sinais': 'Tradutor e Intérprete de Linguagem de Sinais'
+};
+
 // Memória global para os dados extraídos e base de servidores CSV
 window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 window.baseServidoresCSV = window.baseServidoresCSV || [];
@@ -22,19 +75,31 @@ let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabe
 
 /**
  * Helper para formatar nomes em Title Case mantendo conectivos em minúsculo
+ * e aplicando a acentuação de cargos e palavras conhecidas
  */
 function formatarNomeProprio(nome) {
     if (!nome) return '';
-    const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e'];
-    return nome
-        .toLowerCase()
-        .trim()
+    
+    const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'com'];
+    let textoProcessado = nome.toLowerCase().trim();
+
+    // 1. Substituição de expressões completas e acentuações via dicionário
+    Object.keys(DICIONARIO_CORRECOES).forEach(termo => {
+        const regex = new RegExp(`\\b${termo.replace('/', '\\/')}\\b`, 'gi');
+        textoProcessado = textoProcessado.replace(regex, DICIONARIO_CORRECOES[termo]);
+    });
+
+    // 2. Formatação em Title Case para palavras gerais não cobertas pelo dicionário
+    return textoProcessado
         .split(/\s+/)
         .map((palavra, index) => {
-            if (index > 0 && excecoes.includes(palavra)) {
-                return palavra;
+            if (palavra.toLowerCase() !== palavra) {
+                return palavra; // Preserva palavras modificadas pelo dicionário
             }
-            return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+            if (index > 0 && excecoes.includes(palavra.toLowerCase())) {
+                return palavra.toLowerCase(); // Preserva conectivos em minúsculo
+            }
+            return palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase();
         })
         .join(' ');
 }
@@ -352,6 +417,8 @@ function sincronizarDadosManuais() {
         window.dadosExtraidosPDF.dataExercicio = inputDataExercicio.value;
     }
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
+    if (checkErroMaterial) checkErroMaterial.checked = false; // ou window.dadosExtraidosPDF.erroMaterialSanavel
+
     if (checkErroMaterial) window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
 
     executarValidacoesRegras();
