@@ -25,7 +25,7 @@ let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabe
  */
 function formatarNomeProprio(nome) {
     if (!nome) return '';
-    const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e', 'em'];
+    const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e'];
     return nome
         .toLowerCase()
         .trim()
