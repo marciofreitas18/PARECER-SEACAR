@@ -1,18 +1,30 @@
 // Matriz de Requisitos da Titulação/IQ Atual do Servidor por Nível Solicitado
 const REQUISITOS_DECRETO_13048 = {
     'RSC-I':   { iqExigido: 0,  descricao: 'Sem ensino fundamental completo (IQ 0%)' },
-    'RSC-II':  { iqExigido: 10,  descricao: 'Ensino fundamental completo (IQ 10%)' },
-    'RSC-III': { iqExigido: 15,  descricao: 'Ensino Médio / Técnico (IQ 15%)' },
-    'RSC-IV':  { iqExigido: 25,  descricao: 'Graduação / Ensino Superior (IQ 25%)' },
-    'RSC-V':   { iqExigido: 30,  descricao: 'Especialização / Lato Sensu (IQ 30%)' },
-    'RSC-VI':  { iqExigido: 52,  descricao: 'Mestrado (IQ 52%)' }
+    'RSC-II':  { iqExigido: 10, descricao: 'Ensino fundamental completo (IQ 10%)' },
+    'RSC-III': { iqExigido: 15, descricao: 'Ensino Médio / Técnico (IQ 15%)' },
+    'RSC-IV':  { iqExigido: 25, descricao: 'Graduação / Ensino Superior (IQ 25%)' },
+    'RSC-V':   { iqExigido: 30, descricao: 'Especialização / Lato Sensu (IQ 30%)' },
+    'RSC-VI':  { iqExigido: 52, descricao: 'Mestrado (IQ 52%)' }
 };
+
+// Base de dados local em memória (carregada via CSV)
+window.baseServidoresLocal = [];
 
 // Objeto global de dados do processo atual
 window.dadosExtraidosPDF = window.dadosExtraidosPDF || {};
 
+// Mapeamento dos níveis de titulação da planilha para os valores do seletor IQ
+const MAPEAMENTO_TITULACAO_IQ = {
+    'Ensino Médio': '15',
+    'Graduação': '25',
+    'Especialização': '30',
+    'Mestrado': '52',
+    'Doutorado': '52'
+};
+
 // Mapeamento Elementos do DOM
-let pdfCRSCInput, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
+let pdfCRSCInput, csvServidoresInput, statusCsv, statusLeitura, secaoDadosParecer, secaoValidacoes, acoesGeracao;
 let inputNomeServidor, inputCargoServidor, inputLotacaoServidor, inputSiape, inputNumeroProcesso, inputPontuacao, inputDataParecer, inputDataExercicioComissao, inputCRSC;
 let selectIQAtual, selectRscSolicitado, inputDataExercicio, selectEstagioProbatorio;
 let alertaIncompatibilidadeRSC, alertaRetornoComissao, msgDivergenciaData;
@@ -20,6 +32,10 @@ let checkErroMaterial, boxErroMaterial;
 let btnGerarSeacar, btnGerarPortaria, btnExportarExcel, btnLimparHistorico, tabelaHistorico;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Input da base CSV
+    csvServidoresInput = document.getElementById('csvServidoresInput');
+    statusCsv = document.getElementById('statusCsv');
+
     pdfCRSCInput = document.getElementById('pdfCRSCInput');
     statusLeitura = document.getElementById('statusLeitura');
     secaoDadosParecer = document.getElementById('secaoDadosParecer');
@@ -61,8 +77,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function inicializarApp() {
+    if (csvServidoresInput) csvServidoresInput.addEventListener('change', carregarBaseServidoresCSV);
     if (pdfCRSCInput) pdfCRSCInput.addEventListener('change', processarArquivoPDF);
-    
+
+    // Consulta por SIAPE ao perder o foco (blur) do campo
+    if (inputSiape) {
+        inputSiape.addEventListener('blur', () => {
+            if (inputSiape.value) autopreencherServidorPorSiape(inputSiape.value);
+        });
+    }
+
     // Escuta alterações nos campos editáveis para atualizar o estado global
     const camposManuais = [
         inputNomeServidor, 
@@ -120,6 +144,78 @@ function inicializarApp() {
     if (btnLimparHistorico) btnLimparHistorico.addEventListener('click', limparHistoricoLocal);
 
     carregarHistoricoTabela();
+}
+
+/**
+ * Lê a planilha Dados Servidores.csv
+ */
+function carregarBaseServidoresCSV(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (typeof Papa === 'undefined') {
+        alert("Biblioteca PapaParse não encontrada.");
+        return;
+    }
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        encoding: "ISO-8859-1",
+        complete: function(results) {
+            window.baseServidoresLocal = results.data;
+            if (statusCsv) {
+                statusCsv.className = "form-text text-success fw-bold mt-1";
+                statusCsv.textContent = `✅ Base carregada com sucesso! (${window.baseServidoresLocal.length} servidores cadastrados).`;
+            }
+            if (inputSiape && inputSiape.value) {
+                autopreencherServidorPorSiape(inputSiape.value);
+            }
+        },
+        error: function() {
+            if (statusCsv) {
+                statusCsv.className = "form-text text-danger fw-bold mt-1";
+                statusCsv.textContent = "❌ Erro ao ler a planilha CSV. Verifique o formato do arquivo.";
+            }
+        }
+    });
+}
+
+/**
+ * Autopreenche o servidor consultando pelo SIAPE no CSV carregado
+ */
+function autopreencherServidorPorSiape(siape) {
+    if (!window.baseServidoresLocal || window.baseServidoresLocal.length === 0 || !siape) return;
+
+    const siapeLimpo = siape.toString().trim();
+    const servidor = window.baseServidoresLocal.find(s => s.SIAPE && s.SIAPE.toString().trim() === siapeLimpo);
+
+    if (servidor) {
+        if (servidor.Nome && inputNomeServidor) inputNomeServidor.value = servidor.Nome;
+        if (servidor.Cargo && inputCargoServidor) inputCargoServidor.value = servidor.Cargo;
+        if (servidor.Lotacao && inputLotacaoServidor) inputLotacaoServidor.value = servidor.Lotacao;
+
+        if (servidor.Data_Exercicio && inputDataExercicio) {
+            const partes = servidor.Data_Exercicio.split('/');
+            if (partes.length === 3) {
+                inputDataExercicio.value = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+            }
+        }
+
+        if (servidor.Titulacao_IQ && selectIQAtual) {
+            const iqVal = MAPEAMENTO_TITULACAO_IQ[servidor.Titulacao_IQ.trim()];
+            if (iqVal !== undefined) selectIQAtual.value = iqVal;
+        }
+
+        if (inputDataExercicio && inputDataExercicio.value && selectEstagioProbatorio) {
+            const dtEx = new Date(inputDataExercicio.value);
+            const hoje = new Date();
+            const anosEmExercicio = (hoje - dtEx) / (1000 * 60 * 60 * 24 * 365.25);
+            selectEstagioProbatorio.value = anosEmExercicio < 3 ? 'sim' : 'nao';
+        }
+
+        sincronizarDadosManuais();
+    }
 }
 
 /**
@@ -229,6 +325,11 @@ async function processarArquivoPDF(e) {
             if (dados.iqAtual && selectIQAtual) selectIQAtual.value = dados.iqAtual;
             if (dados.nivelSolicitado && selectRscSolicitado) selectRscSolicitado.value = dados.nivelSolicitado;
             if (inputDataExercicio) inputDataExercicio.value = dados.dataExercicioComissao || dados.dataExercicio || '';
+
+            // Tenta autopreencher com os dados cadastrais da planilha caso o SIAPE tenha sido lido
+            if (dados.siape) {
+                autopreencherServidorPorSiape(dados.siape);
+            }
 
             if (statusLeitura) {
                 statusLeitura.classList.replace('alert-secondary', 'alert-success');
