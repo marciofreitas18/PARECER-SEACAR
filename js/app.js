@@ -1,11 +1,11 @@
 // Matriz de Requisitos da Titulação/IQ Atual do Servidor por Nível Solicitado
 const REQUISITOS_DECRETO_13048 = {
-    'RSC-I':   { iqExigido: 0,  descricao: 'Sem ensino fundamental completo (IQ 0%)' },
-    'RSC-II':  { iqExigido: 10, descricao: 'Ensino fundamental completo (IQ 10%)' },
-    'RSC-III': { iqExigido: 15, descricao: 'Ensino Médio / Técnico (IQ 15%)' },
-    'RSC-IV':  { iqExigido: 25, descricao: 'Graduação / Ensino Superior (IQ 25%)' },
-    'RSC-V':   { iqExigido: 30, descricao: 'Especialização / Lato Sensu (IQ 30%)' },
-    'RSC-VI':  { iqExigido: 52, descricao: 'Mestrado (IQ 52%)' }
+    'RSC-I':   { iqExigido: 0,  escolaridadesAceitas: ['sem ensino fundamental'], descricao: 'Sem ensino fundamental completo (IQ 0%)' },
+    'RSC-II':  { iqExigido: 10, escolaridadesAceitas: ['fundamental', 'ensino fundamental'], descricao: 'Ensino fundamental completo (IQ 10%)' },
+    'RSC-III': { iqExigido: 15, escolaridadesAceitas: ['medio', 'médio', 'tecnico', 'técnico', 'ensino médio'], descricao: 'Ensino Médio / Técnico (IQ 15%)' },
+    'RSC-IV':  { iqExigido: 25, escolaridadesAceitas: ['graduacao', 'graduação', 'superior'], descricao: 'Graduação / Ensino Superior (IQ 25%)' },
+    'RSC-V':   { iqExigido: 30, escolaridadesAceitas: ['especializacao', 'especialização', 'lato sensu', 'pos', 'pós'], descricao: 'Especialização / Lato Sensu (IQ 30%)' },
+    'RSC-VI':  { iqExigido: 52, escolaridadesAceitas: ['mestrado', 'doutorado', 'stricto sensu'], descricao: 'Mestrado (IQ 52%)' }
 };
 
 /**
@@ -390,7 +390,6 @@ function sincronizarDadosManuais() {
     }
     if (selectEstagioProbatorio) window.dadosExtraidosPDF.estagioProbatorio = selectEstagioProbatorio.value;
 
-    // Apenas obtém o valor sem zerar o estado
     if (checkErroMaterial) window.dadosExtraidosPDF.erroMaterialSanavel = checkErroMaterial.checked;
 
     executarValidacoesRegras();
@@ -498,13 +497,23 @@ function executarValidacoesRegras() {
     let impedimentos = [];
     let requerDevolucaoCRSC = false;
 
-    const iqVal = selectIQAtual ? parseInt(selectIQAtual.value, 10) : null;
+    const iqVal = selectIQAtual ? parseInt(selectIQAtual.value, 10) : 0;
     const rscVal = selectRscSolicitado ? selectRscSolicitado.value : null;
+    const escolaridadeTexto = inputEscolaridade ? inputEscolaridade.value.toLowerCase().trim() : '';
 
-    if (iqVal !== null && !isNaN(iqVal) && rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
+    if (rscVal && REQUISITOS_DECRETO_13048[rscVal]) {
         const regra = REQUISITOS_DECRETO_13048[rscVal];
-        if (iqVal < regra.iqExigido) {
-            impedimentos.push(`Incompatibilidade: Para solicitar o ${rscVal}, exige-se IQ mínimo de ${regra.iqExigido}% (${regra.descricao}). IQ informado: ${iqVal}%.`);
+        
+        // Verifica se a escolaridade informada atende aos termos aceitos do nivel
+        const possuiEscolaridadeAceita = regra.escolaridadesAceitas ? 
+            regra.escolaridadesAceitas.some(termo => escolaridadeTexto.includes(termo)) : false;
+
+        // Validação flexível: aceita se o IQ atingir o mínimo OU se a escolaridade declarada for compatível
+        const atendeRequisito = (!isNaN(iqVal) && iqVal >= regra.iqExigido) || possuiEscolaridadeAceita;
+
+        if (!atendeRequisito) {
+            impedimentos.push(`Incompatibilidade: Para solicitar o ${rscVal}, exige-se no mínimo ${regra.descricao}. (IQ informado: ${iqVal}% | Escolaridade: ${inputEscolaridade ? inputEscolaridade.value : 'Não informada'}).`);
+            
             if (alertaIncompatibilidadeRSC) {
                 alertaIncompatibilidadeRSC.innerHTML = `<strong>⛔ Incompatibilidade Legal:</strong> O nível <strong>${rscVal}</strong> exige no mínimo ${regra.descricao}.`;
                 alertaIncompatibilidadeRSC.classList.remove('d-none');
